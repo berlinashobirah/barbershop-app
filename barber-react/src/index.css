@@ -1,0 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&family=Manrope:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Material Symbols */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-family: 'Material Symbols Outlined';
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Hero gradient overlay */
+.hero-gradient {
+  background: linear-gradient(to right, #131313 30%, transparent 100%);
+}
+
+/* Gold shimmer button */
+.gold-shimmer {
+  background: linear-gradient(45deg, #eac249 0%, #ffe08b 50%, #eac249 100%);
+}
+
+/* Map texture background */
+.map-texture {
+  background-color: #1a1b1b;
+  background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuDBhTzCYnUJerlNPmlMrGZAkvwjZ2eRNpaJzIGFHKc61ba82_bxf-v8zSyzodKJXkeTK6jN4YVtrqpNqTqi1-6U_z4i0P5lfoXtegtZFmq35aEX9sbOtPC5-purSiXMbxUZzKm_pts19wgJi1UBSAyq9YCETbZo4dRJLtKQcea4bMJUzwetR903gYlzyqx4dHxhRtrUDjBiAZNfI90MCNuku8Y02yEKCH2DTcZfStpiETweCRNebsV6D3EIZjlESW5PgDMYjDbyJoE);
+}
