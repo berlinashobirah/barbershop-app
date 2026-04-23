@@ -59,7 +59,7 @@ barbershop-app/
 ## ⚙️ Instalasi & Menjalankan Project
 
 ### 1. Clone Repository
-git clone https://github.com/USERNAME/barbershop-app.git
+git clone https://github.com/berlinashobirah/barbershop-app.git
 cd barbershop-app
 
 ---
@@ -70,7 +70,7 @@ npm install
 npm run dev
 
 Backend akan berjalan di:
-http://localhost:5000
+http://localhost:8000
 
 ---
 
@@ -86,7 +86,7 @@ http://localhost:5173
 
 ## 🔗 Koneksi API
 Pastikan frontend terhubung ke backend dengan base URL:
-http://localhost:5000
+http://localhost:8000
 
 ---
 
@@ -104,11 +104,6 @@ Kontribusi terbuka untuk siapa saja. Silakan fork repository dan buat pull reque
 
 ## 📄 Lisensi
 Project ini dibuat untuk keperluan pembelajaran.
-
----
-
-## 👩‍💻 Author
-Berlina Shobirah
 
 ---
 
