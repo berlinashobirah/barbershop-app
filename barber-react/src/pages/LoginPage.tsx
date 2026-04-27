@@ -1,15 +1,33 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import axios from 'axios'
 
 const LoginPage = () => {
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
+  const [loginId, setLoginId] = useState('')
   const [password, setPassword] = useState('')
+  const [errorMsg, setErrorMsg] = useState('')
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // TODO: integrate with backend auth
-    navigate('/')
+    setErrorMsg('')
+    try {
+      const response = await axios.post('http://localhost:8000/api/login', {
+        loginId,
+        password
+      })
+      localStorage.setItem('auth_token', response.data.token)
+      localStorage.setItem('user', JSON.stringify(response.data.user))
+      
+      // Navigate to admin if role is admin, otherwise home/member dashboard
+      if (response.data.user.role === 'admin') {
+        navigate('/admin/dashboard')
+      } else {
+        navigate('/')
+      }
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.message || 'Login gagal. Silakan periksa kembali data Anda.')
+    }
   }
 
   return (
@@ -26,7 +44,7 @@ const LoginPage = () => {
             <Link to="/" className="text-secondary hover:text-primary transition-colors font-label">Gallery</Link>
           </div>
           <Link
-            to="/konfirmasi-identitas"
+            to="/booking"
             className="bg-primary text-on-primary px-6 py-2 rounded-lg font-bold text-sm tracking-wider uppercase hover:opacity-80 transition-opacity active:scale-95 duration-200"
           >
             Book Now
@@ -75,20 +93,25 @@ const LoginPage = () => {
 
               {/* Login Form */}
               <form className="space-y-6" onSubmit={handleSubmit}>
+                {errorMsg && (
+                  <div className="bg-red-500/10 border border-red-500/50 text-red-500 p-3 rounded-lg text-sm text-center">
+                    {errorMsg}
+                  </div>
+                )}
                 <div className="space-y-2">
                   <label
                     htmlFor="login-email"
                     className="block text-sm font-medium text-on-surface-variant font-label tracking-wide uppercase"
                   >
-                    Email Address
+                    Email / WhatsApp
                   </label>
                   <input
                     id="login-email"
                     className="w-full bg-surface-container-highest border-none focus:ring-1 focus:ring-primary rounded-lg p-4 text-on-surface placeholder:text-outline-variant transition-all outline-none"
-                    placeholder="email@artisan.com"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="email / 0812..."
+                    type="text"
+                    value={loginId}
+                    onChange={(e) => setLoginId(e.target.value)}
                     required
                   />
                 </div>

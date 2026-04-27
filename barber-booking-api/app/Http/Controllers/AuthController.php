@@ -13,12 +13,14 @@ class AuthController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
             'phone' => 'required|string|unique:users,phone',
             'password' => 'required|string|min:6'
         ]);
 
         $user = User::create([
             'name' => $request->name,
+            'email' => $request->email,
             'phone' => $request->phone,
             'password' => Hash::make($request->password),
             'role' => 'member' // Default role
@@ -36,15 +38,17 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'phone' => 'required|string',
+            'loginId' => 'required|string',
             'password' => 'required|string'
         ]);
 
-        $user = User::where('phone', $request->phone)->first();
+        $loginField = filter_var($request->loginId, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone';
+
+        $user = User::where($loginField, $request->loginId)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
-                'phone' => ['Nomor HP atau password salah.'],
+                'loginId' => ['Email/Nomor HP atau password salah.'],
             ]);
         }
 

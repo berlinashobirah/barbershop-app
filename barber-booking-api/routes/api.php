@@ -17,6 +17,10 @@ Route::post('/guest/bookings', [BookingController::class, 'storeGuest']);
 Route::get('/services', [MasterController::class, 'getServices']);
 Route::get('/barbers', [MasterController::class, 'getActiveBarbers']);
 
+// Endpoint untuk Booking Flow Dinamis
+Route::get('/slots/availability', [BookingController::class, 'getAvailableSlots']);
+Route::get('/barbers/available', [BookingController::class, 'getAvailableBarbers']);
+
 // --- PROTECTED ROUTES
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);

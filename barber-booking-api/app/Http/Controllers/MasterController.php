@@ -23,8 +23,8 @@ class MasterController extends Controller
     // Fungsi untuk mengambil kapster yang HANYA sedang aktif
     public function getActiveBarbers()
     {
-        // Mengambil kapster yang is_active = true
-        $barbers = Barber::where('is_active', true)->get();
+        // Mengambil semua kapster tanpa membedakan is_active
+        $barbers = Barber::all();
 
         return response()->json([
             'status' => 'success',

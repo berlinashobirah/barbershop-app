@@ -9,7 +9,7 @@ class Barber extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'is_active'];
+    protected $fillable = ['name', 'image', 'specialty', 'status'];
 
     // Relasi: Satu Barber bisa menangani banyak Booking
     public function bookings()

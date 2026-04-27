@@ -5,49 +5,143 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Models\Barber;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str; // Untuk membuat string acak
+use Illuminate\Support\Str;
 
 class BookingController extends Controller
 {
+    // === NEW ENDPOINTS FOR DYNAMIC BOOKING FLOW ===
+
+    // 1. Get Available Slots for a given date
+    public function getAvailableSlots(Request $request)
+    {
+        $request->validate([
+            'date' => 'required|date'
+        ]);
+
+        $date = $request->date;
+        
+        // Define all possible time slots for the shop (e.g. 10:00 to 20:00 every hour)
+        $allSlots = [
+            '10:00', '11:00', '12:00', '13:00', '14:00', 
+            '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'
+        ];
+
+        // Total available barbers overall (excluding On Break maybe? Or just count all barbers)
+        // Let's assume all barbers in DB could potentially work
+        $totalBarbers = Barber::count();
+
+        $slotsData = [];
+
+        foreach ($allSlots as $time) {
+            // How many bookings exist at this date and time that are not completed/cancelled?
+            $existingBookingsCount = Booking::where('booking_date', $date)
+                ->where('booking_time', $time . ':00') // append seconds to match DB time format
+                ->whereIn('status', ['pending', 'arrived', 'processing'])
+                ->count();
+
+            $availableCount = $totalBarbers - $existingBookingsCount;
+
+            $slotsData[] = [
+                'time' => $time,
+                'available_barbers' => max(0, $availableCount),
+                'is_full' => $availableCount <= 0
+            ];
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $slotsData
+        ]);
+    }
+
+    // 2. Get Available Barbers for a given date and time
+    public function getAvailableBarbers(Request $request)
+    {
+        $request->validate([
+            'date' => 'required|date',
+            'time' => 'required'
+        ]);
+
+        $date = $request->date;
+        // Make sure time format matches DB (add :00 if missing)
+        $time = strlen($request->time) == 5 ? $request->time . ':00' : $request->time;
+
+        // Find barber IDs that ARE booked at this date and time
+        $bookedBarberIds = Booking::where('booking_date', $date)
+            ->where('booking_time', $time)
+            ->whereIn('status', ['pending', 'arrived', 'processing'])
+            ->whereNotNull('barber_id')
+            ->pluck('barber_id')
+            ->toArray();
+
+        // Get barbers that are NOT in the bookedBarberIds array
+        $availableBarbers = Barber::whereNotIn('id', $bookedBarberIds)->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $availableBarbers
+        ]);
+    }
+
+    // === EXISTING ENDPOINTS ===
+
     public function storeGuest(Request $request)
     {
-        // 1. Validasi Input dari Frontend (React nanti)
+        // 1. Validasi Input
         $request->validate([
             'guest_name' => 'required|string|max:255',
-            'guest_phone' => 'required|numeric', // Harus angka
+            'guest_phone' => 'required|numeric', 
             'booking_date' => 'required|date',
             'booking_time' => 'required',
-            'barber_id' => 'nullable|exists:barbers,id' // Boleh diisi, boleh kosong (Siapa Saja)
+            'barber_id' => 'nullable|exists:barbers,id',
+            'service_id' => 'required|exists:services,id' // NEW
         ]);
 
         // 2. CEK KUOTA (LOGIKA UTAMA)
-        // Hitung berapa kapster yang sedang aktif hari ini
-        $activeBarbersCount = Barber::where('is_active', true)->count();
+        // Hitung berapa kapster yang tersedia
+        $totalBarbersCount = Barber::count();
 
         // Hitung ada berapa orang yang sudah booking di tanggal dan jam yang sama
+        $timeFormat = strlen($request->booking_time) == 5 ? $request->booking_time . ':00' : $request->booking_time;
+        
         $existingBookingsCount = Booking::where('booking_date', $request->booking_date)
-            ->where('booking_time', $request->booking_time)
+            ->where('booking_time', $timeFormat)
             ->whereIn('status', ['pending', 'arrived', 'processing'])
             ->count();
 
         // Jika jumlah antrean sudah sama atau lebih dari jumlah kapster, TOLAK!
-        if ($existingBookingsCount >= $activeBarbersCount) {
+        if ($existingBookingsCount >= $totalBarbersCount) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Maaf, slot pada jam tersebut sudah penuh. Silakan pilih jam lain.'
             ], 400); // 400 Bad Request
         }
+        
+        // Cek jika spesifik barber dipilih, apakah dia available?
+        if ($request->barber_id) {
+            $isBarberBooked = Booking::where('booking_date', $request->booking_date)
+                ->where('booking_time', $timeFormat)
+                ->where('barber_id', $request->barber_id)
+                ->whereIn('status', ['pending', 'arrived', 'processing'])
+                ->exists();
+                
+            if ($isBarberBooked) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Maaf, kapster tersebut sudah di-booking pada jam tersebut. Silakan pilih jam atau kapster lain.'
+                ], 400);
+            }
+        }
 
         // 3. GENERATE KODE UNIK
-        // Membuat string acak misal: BRB-7X9A2
         $uniqueCode = 'BRB-' . strtoupper(Str::random(5));
-
-        // Pastikan kode benar-benar unik (tidak ada di database)
         while (Booking::where('unique_code', $uniqueCode)->exists()) {
             $uniqueCode = 'BRB-' . strtoupper(Str::random(5));
         }
 
         // 4. SIMPAN KE DATABASE
+        $service = \App\Models\Service::find($request->service_id);
+
         $booking = Booking::create([
             'unique_code' => $uniqueCode,
             'user_id' => null, // KOSONG KARENA INI GUEST
@@ -55,8 +149,18 @@ class BookingController extends Controller
             'guest_phone' => $request->guest_phone,
             'barber_id' => $request->barber_id,
             'booking_date' => $request->booking_date,
-            'booking_time' => $request->booking_time,
-            'status' => 'pending'
+            'booking_time' => $timeFormat,
+            'status' => 'pending',
+            'total_amount' => (int) $service->price
+        ]);
+
+        // Simpan Booking Details
+        \Illuminate\Support\Facades\DB::table('booking_details')->insert([
+            'booking_id' => $booking->id,
+            'service_id' => $service->id,
+            'price_snapshot' => $service->price,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         // 5. KEMBALIKAN RESPONS SUKSES KE FRONTEND
@@ -73,21 +177,40 @@ class BookingController extends Controller
         $request->validate([
             'booking_date' => 'required|date',
             'booking_time' => 'required',
-            'barber_id' => 'nullable|exists:barbers,id'
+            'barber_id' => 'nullable|exists:barbers,id',
+            'service_id' => 'required|exists:services,id' // NEW
         ]);
 
         // 2. CEK KUOTA (Sama seperti Guest)
-        $activeBarbersCount = Barber::where('is_active', true)->count();
+        $totalBarbersCount = Barber::count();
+        $timeFormat = strlen($request->booking_time) == 5 ? $request->booking_time . ':00' : $request->booking_time;
+
         $existingBookingsCount = Booking::where('booking_date', $request->booking_date)
-            ->where('booking_time', $request->booking_time)
+            ->where('booking_time', $timeFormat)
             ->whereIn('status', ['pending', 'arrived', 'processing'])
             ->count();
 
-        if ($existingBookingsCount >= $activeBarbersCount) {
+        if ($existingBookingsCount >= $totalBarbersCount) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Maaf, slot pada jam tersebut sudah penuh.'
             ], 400);
+        }
+        
+        // Cek jika spesifik barber dipilih, apakah dia available?
+        if ($request->barber_id) {
+            $isBarberBooked = Booking::where('booking_date', $request->booking_date)
+                ->where('booking_time', $timeFormat)
+                ->where('barber_id', $request->barber_id)
+                ->whereIn('status', ['pending', 'arrived', 'processing'])
+                ->exists();
+                
+            if ($isBarberBooked) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Maaf, kapster tersebut sudah di-booking pada jam tersebut.'
+                ], 400);
+            }
         }
 
         // 3. GENERATE KODE UNIK
@@ -97,6 +220,8 @@ class BookingController extends Controller
         }
 
         // 4. SIMPAN KE DATABASE (Ambil ID User dari Token)
+        $service = \App\Models\Service::find($request->service_id);
+
         $booking = Booking::create([
             'unique_code' => $uniqueCode,
             'user_id' => $request->user()->id, // <-- INI BEDANYA DENGAN GUEST
@@ -104,8 +229,18 @@ class BookingController extends Controller
             'guest_phone' => null,
             'barber_id' => $request->barber_id,
             'booking_date' => $request->booking_date,
-            'booking_time' => $request->booking_time,
-            'status' => 'pending'
+            'booking_time' => $timeFormat,
+            'status' => 'pending',
+            'total_amount' => (int) $service->price
+        ]);
+
+        // Simpan Booking Details
+        \Illuminate\Support\Facades\DB::table('booking_details')->insert([
+            'booking_id' => $booking->id,
+            'service_id' => $service->id,
+            'price_snapshot' => $service->price,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         return response()->json([
