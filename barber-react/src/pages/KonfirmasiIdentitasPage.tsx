@@ -28,22 +28,31 @@ const KonfirmasiIdentitasPage = () => {
   const handleGuestSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!bookingData) { setErrorMsg('Data booking tidak ditemukan. Silakan mulai ulang booking.'); return; }
+    
+    // Strip non-digit dari nomor WA (hapus +62, spasi, dll) sebelum kirim ke backend
+    const cleanPhone = guestPhone.replace(/\D/g, '')
+    if (cleanPhone.length < 9) {
+      setErrorMsg('Nomor WhatsApp tidak valid. Minimal 9 digit.')
+      return
+    }
+    
     setLoading(true)
     setErrorMsg('')
     
     try {
-      await axios.post('http://localhost:8000/api/guest/bookings', {
+      const res = await axios.post('http://localhost:8000/api/guest/bookings', {
         guest_name: guestName,
-        guest_phone: guestPhone,
+        guest_phone: cleanPhone,
         booking_date: bookingData.date,
         booking_time: bookingData.time,
         barber_id: bookingData.barberId,
         service_id: bookingData.serviceId
       });
       localStorage.removeItem('booking_data');
+      localStorage.setItem('last_booking', JSON.stringify(res.data.data));
       navigate('/setelah-booking');
     } catch (err: any) {
-      setErrorMsg(err.response?.data?.message || 'Terjadi kesalahan saat memproses booking.');
+      setErrorMsg(err.response?.data?.message || 'Terjadi kesalahan saat memproses booking.')
     } finally {
       setLoading(false)
     }
@@ -55,13 +64,13 @@ const KonfirmasiIdentitasPage = () => {
     setErrorMsg('')
 
     try {
-      // 1. Login Dulu
+      // 1. Login Dulu — kirim 'loginId' sesuai format API
       const loginRes = await axios.post('http://localhost:8000/api/login', {
-        email: loginEmail,
+        loginId: loginEmail,
         password: loginPassword
       });
 
-      const newToken = loginRes.data.access_token;
+      const newToken = loginRes.data.token;
       const newUser = loginRes.data.user;
 
       localStorage.setItem('auth_token', newToken);
@@ -72,7 +81,7 @@ const KonfirmasiIdentitasPage = () => {
 
       // 2. Jika ada data booking, langsung submit. Jika tidak, cukup login & ke beranda.
       if (bookingData) {
-        await axios.post('http://localhost:8000/api/member/bookings', {
+        const bookRes = await axios.post('http://localhost:8000/api/member/bookings', {
           booking_date: bookingData.date,
           booking_time: bookingData.time,
           barber_id: bookingData.barberId,
@@ -81,6 +90,7 @@ const KonfirmasiIdentitasPage = () => {
           headers: { Authorization: `Bearer ${newToken}` }
         });
         localStorage.removeItem('booking_data');
+        localStorage.setItem('last_booking', JSON.stringify(bookRes.data.data));
         navigate('/setelah-booking');
       } else {
         // Hanya login, redirect ke beranda
@@ -104,7 +114,7 @@ const KonfirmasiIdentitasPage = () => {
     setErrorMsg('')
 
     try {
-      await axios.post('http://localhost:8000/api/member/bookings', {
+      const res = await axios.post('http://localhost:8000/api/member/bookings', {
         booking_date: bookingData.date,
         booking_time: bookingData.time,
         barber_id: bookingData.barberId,
@@ -114,6 +124,7 @@ const KonfirmasiIdentitasPage = () => {
       });
 
       localStorage.removeItem('booking_data');
+      localStorage.setItem('last_booking', JSON.stringify(res.data.data));
       navigate('/setelah-booking');
     } catch (err: any) {
       if (err.response?.status === 401 || err.response?.data?.message === 'Unauthenticated.') {

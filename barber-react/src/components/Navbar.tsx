@@ -1,14 +1,40 @@
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const token = localStorage.getItem('auth_token');
-  const userStr = localStorage.getItem('user');
-  const user = userStr ? JSON.parse(userStr) : null;
+
+  // Baca state dari localStorage secara reaktif
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem('auth_token'));
+  const [user, setUser] = useState<{ name: string } | null>(() => {
+    const s = localStorage.getItem('user');
+    return s ? JSON.parse(s) : null;
+  });
+
+  // Sinkronisasi setiap kali ada perubahan (login/logout dari tab lain atau halaman ini)
+  useEffect(() => {
+    const syncAuth = () => {
+      setToken(localStorage.getItem('auth_token'));
+      const s = localStorage.getItem('user');
+      setUser(s ? JSON.parse(s) : null);
+    };
+
+    // 'auth-change' dikirim secara manual dari halaman Login setelah berhasil login
+    window.addEventListener('auth-change', syncAuth);
+    // 'storage' mendeteksi perubahan dari tab lain
+    window.addEventListener('storage', syncAuth);
+
+    return () => {
+      window.removeEventListener('auth-change', syncAuth);
+      window.removeEventListener('storage', syncAuth);
+    };
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user');
+    setToken(null);
+    setUser(null);
     navigate('/');
   };
 
@@ -18,7 +44,6 @@ const Navbar = () => {
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
     } else {
-      // If not on landing page, navigate to home and append hash
       if (window.location.pathname !== '/') {
         navigate(`/#${id}`);
       }
@@ -38,8 +63,8 @@ const Navbar = () => {
         {/* Navigation Links */}
         <div className="hidden md:flex gap-8 items-center">
           <a
-            href={isHome ? "#" : "/"}
-            onClick={isHome ? (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }) } : undefined}
+            href={isHome ? '#' : '/'}
+            onClick={isHome ? (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); } : undefined}
             className="text-neutral-400 font-medium hover:text-[#C5A028] transition-all duration-300 font-serif tracking-tight text-lg"
           >
             Beranda
@@ -78,7 +103,7 @@ const Navbar = () => {
         ) : (
           <div className="flex items-center gap-4">
             <span className="text-[#C5A028] font-bold text-sm hidden md:block">
-              Halo, {user?.name?.split(' ')[0]}
+              Halo, {user?.name?.split(' ')[0] ?? 'User'}
             </span>
             <button
               onClick={handleLogout}

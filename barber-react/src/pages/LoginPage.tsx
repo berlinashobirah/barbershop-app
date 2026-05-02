@@ -18,7 +18,10 @@ const LoginPage = () => {
       })
       localStorage.setItem('auth_token', response.data.token)
       localStorage.setItem('user', JSON.stringify(response.data.user))
-      
+
+      // Beritahu Navbar agar langsung update (tanpa page reload)
+      window.dispatchEvent(new Event('auth-change'))
+
       // Navigate to admin if role is admin, otherwise home/member dashboard
       if (response.data.user.role === 'admin') {
         navigate('/admin/dashboard')

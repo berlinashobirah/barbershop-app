@@ -4,6 +4,8 @@ const navItems = [
   { to: '/admin/dashboard', icon: 'dashboard', label: 'Dashboard' },
   { to: '/admin/antrian', icon: 'receipt_long', label: 'Kelola Antrean' },
   { to: '/admin/jadwal', icon: 'calendar_month', label: 'Jadwal Kapster' },
+  { to: '/admin/members', icon: 'group', label: 'Kelola Member' },
+  { to: '/admin/promotions', icon: 'confirmation_number', label: 'Promosi & Diskon' },
   { to: '/admin/laporan', icon: 'analytics', label: 'Laporan' },
   { to: '/admin/pengaturan', icon: 'settings', label: 'Pengaturan' },
 ]
@@ -59,14 +61,7 @@ export default function AdminLayout() {
       {/* Top Header */}
       <header className="fixed top-0 right-0 w-[calc(100%-16rem)] z-30 flex items-center justify-between px-8 h-20 bg-neutral-950/80 backdrop-blur-xl shadow-xl shadow-black/20">
         <div className="relative w-full max-w-xl group">
-          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-[#eac249] transition-colors">
-            search
-          </span>
-          <input
-            className="w-full bg-zinc-900/60 border-none rounded-full py-3 pl-12 pr-6 text-sm text-zinc-200 placeholder-zinc-600 focus:ring-1 focus:ring-[#eac249]/30 tracking-wide transition-all outline-none"
-            placeholder="Cari kode unik (misal: BRB-001-XYZ)..."
-            type="text"
-          />
+
         </div>
 
         <div className="flex items-center gap-6 ml-8">

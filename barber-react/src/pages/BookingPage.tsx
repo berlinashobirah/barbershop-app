@@ -2,9 +2,6 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import axios from 'axios'
 
-const token = localStorage.getItem('auth_token');
-const userStr = localStorage.getItem('user');
-const user = userStr ? JSON.parse(userStr) : null;
 
 interface Service {
   id: number;
@@ -32,6 +29,13 @@ interface TimeSlot {
 const BookingPage = () => {
   const navigate = useNavigate()
   
+  // Auth State — dibaca dari localStorage di dalam komponen agar reaktif
+  const [token] = useState(() => localStorage.getItem('auth_token'))
+  const [user] = useState(() => {
+    const str = localStorage.getItem('user')
+    return str ? JSON.parse(str) : null
+  })
+
   // Data State
   const [services, setServices] = useState<Service[]>([])
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([])
@@ -318,7 +322,25 @@ const BookingPage = () => {
                 <div className="bg-surface-container-low p-8 rounded-lg border border-outline-variant/10 text-center text-secondary">
                   Silakan pilih slot waktu terlebih dahulu untuk melihat kapster yang tersedia.
                 </div>
+              ) : !token ? (
+                /* GUEST: tidak bisa pilih kapster — akan di-random otomatis */
+                <div className="bg-surface-container-low p-8 rounded-lg border border-outline-variant/10 flex items-start gap-5">
+                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <span className="material-symbols-outlined text-primary text-3xl">shuffle</span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-on-surface text-lg mb-1">Kapster Acak Tersedia</h3>
+                    <p className="text-secondary text-sm leading-relaxed">
+                      Sebagai tamu, kapster terbaik yang sedang tersedia akan kami pilihkan secara otomatis untuk Anda.
+                    </p>
+                    <p className="text-[11px] text-primary/70 mt-3 uppercase tracking-widest">
+                      <span className="material-symbols-outlined text-xs align-middle mr-1">login</span>
+                      <Link to="/login" className="hover:underline font-semibold">Masuk sebagai member</Link> untuk memilih kapster favorit Anda
+                    </p>
+                  </div>
+                </div>
               ) : (
+                /* MEMBER: bisa pilih kapster spesifik */
                 <div className="relative group">
                   <div className="flex gap-4 overflow-x-auto pb-4 -mx-2 px-2 custom-scrollbar">
                     
@@ -392,7 +414,12 @@ const BookingPage = () => {
                   <div className="text-[10px] text-secondary uppercase tracking-widest mb-1">Kapster</div>
                   <div className="font-bold flex items-center gap-2">
                     <span className="material-symbols-outlined text-secondary">face</span>
-                    {selectedBarber === null ? 'Siapa Saja (Tersedia)' : barber?.name}
+                    {!token
+                      ? <span className="text-secondary italic text-sm">Acak Otomatis (Tamu)</span>
+                      : selectedBarber === null
+                      ? 'Siapa Saja (Tersedia)'
+                      : barber?.name
+                    }
                   </div>
                 </div>
               </div>
@@ -423,7 +450,7 @@ const BookingPage = () => {
                     // Langsung panggil API jika sudah login
                     const submitBooking = async () => {
                       try {
-                        await axios.post('http://localhost:8000/api/member/bookings', {
+                        const res = await axios.post('http://localhost:8000/api/member/bookings', {
                           booking_date: data.date,
                           booking_time: data.time,
                           barber_id: data.barberId,
@@ -431,13 +458,15 @@ const BookingPage = () => {
                         }, {
                           headers: { Authorization: `Bearer ${token}` }
                         });
+                        localStorage.removeItem('booking_data');
+                        localStorage.setItem('last_booking', JSON.stringify(res.data.data));
                         navigate('/setelah-booking');
                       } catch (err: any) {
                         if (err.response?.status === 401 || err.response?.data?.message === 'Unauthenticated.') {
                           localStorage.removeItem('auth_token');
                           localStorage.removeItem('user');
                           alert('Sesi Anda telah berakhir. Silakan isi data Guest atau Login kembali.');
-                          navigate('/konfirmasi-identitas');
+                          navigate('/login');
                         } else {
                           alert(err.response?.data?.message || 'Terjadi kesalahan saat memproses booking.');
                         }
