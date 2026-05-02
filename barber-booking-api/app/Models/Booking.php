@@ -18,7 +18,11 @@ class Booking extends Model
         'booking_date',
         'booking_time',
         'status',
-        'total_amount'
+        'total_amount',
+        'payment_status',
+        'midtrans_order_id',
+        'midtrans_transaction_id',
+        'points_awarded',
     ];
 
     // Relasi balik ke User

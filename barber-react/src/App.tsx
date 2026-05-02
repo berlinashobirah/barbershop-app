@@ -11,6 +11,8 @@ import AdminAntrianPage from './pages/admin/AdminAntrianPage'
 import AdminJadwalPage from './pages/admin/AdminJadwalPage'
 import AdminLaporanPage from './pages/admin/AdminLaporanPage'
 import AdminPengaturanPage from './pages/admin/AdminPengaturanPage'
+import AdminMemberPage from './pages/admin/AdminMemberPage'
+import AdminPromosiPage from './pages/admin/AdminPromosiPage'
 
 function App() {
   return (
@@ -30,6 +32,8 @@ function App() {
           <Route path="dashboard" element={<AdminDashboardPage />} />
           <Route path="antrian" element={<AdminAntrianPage />} />
           <Route path="jadwal" element={<AdminJadwalPage />} />
+          <Route path="members" element={<AdminMemberPage />} />
+          <Route path="promotions" element={<AdminPromosiPage />} />
           <Route path="laporan" element={<AdminLaporanPage />} />
           <Route path="pengaturan" element={<AdminPengaturanPage />} />
         </Route>

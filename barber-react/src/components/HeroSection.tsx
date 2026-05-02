@@ -32,7 +32,7 @@ const HeroSection = () => {
           <div className="flex flex-col sm:flex-row gap-4">
             <button
               id="btn-booking-hero"
-              onClick={() => navigate('/konfirmasi-identitas')}
+              onClick={() => navigate('/booking')}
               className="gold-shimmer text-on-primary px-8 py-4 rounded-md font-bold text-lg hover:brightness-110 transition-all flex items-center justify-center gap-2"
             >
               Booking Sekarang

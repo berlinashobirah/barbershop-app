@@ -9,7 +9,7 @@ class Service extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'duration_minutes', 'price'];
+    protected $fillable = ['name', 'duration_minutes', 'price', 'image', 'description', 'points_reward'];
 
     // Relasi Many-to-Many ke Booking melalui tabel pivot booking_details
     public function bookings()

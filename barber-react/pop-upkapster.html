@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-low": "#1c1b1b",
+                    "error": "#ffb4ab",
+                    "surface-dim": "#131313",
+                    "primary": "#eac249",
+                    "secondary-container": "#474747",
+                    "on-tertiary-fixed": "#1a1c1c",
+                    "error-container": "#93000a",
+                    "on-secondary": "#303030",
+                    "surface-tint": "#eac249",
+                    "primary-fixed": "#ffe08b",
+                    "inverse-on-surface": "#313030",
+                    "on-tertiary": "#2f3131",
+                    "on-surface-variant": "#d0c5af",
+                    "surface-container-lowest": "#0e0e0e",
+                    "on-surface": "#e5e2e1",
+                    "on-primary-fixed": "#241a00",
+                    "surface-container-highest": "#353534",
+                    "secondary-fixed-dim": "#c8c6c5",
+                    "on-error-container": "#ffdad6",
+                    "surface-bright": "#393939",
+                    "outline-variant": "#4d4635",
+                    "inverse-primary": "#745b00",
+                    "on-secondary-fixed": "#1b1c1c",
+                    "secondary": "#c8c6c5",
+                    "surface-container": "#201f1f",
+                    "secondary-fixed": "#e4e2e1",
+                    "background": "#131313",
+                    "tertiary-fixed": "#e2e2e2",
+                    "on-primary-fixed-variant": "#584400",
+                    "inverse-surface": "#e5e2e1",
+                    "outline": "#99907c",
+                    "on-primary": "#3d2f00",
+                    "tertiary-fixed-dim": "#c6c6c6",
+                    "surface-variant": "#353534",
+                    "on-secondary-container": "#b6b5b4",
+                    "on-primary-container": "#493800",
+                    "on-background": "#e5e2e1",
+                    "primary-container": "#c5a028",
+                    "surface": "#131313",
+                    "on-error": "#690005",
+                    "tertiary-container": "#a3a4a4",
+                    "primary-fixed-dim": "#eac249",
+                    "on-tertiary-fixed-variant": "#454747",
+                    "tertiary": "#c6c6c6",
+                    "surface-container-high": "#2a2a2a",
+                    "on-secondary-fixed-variant": "#474747",
+                    "on-tertiary-container": "#393a3b"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Noto Serif"],
+                    "display": ["Noto Serif"],
+                    "body": ["Manrope"],
+                    "label": ["Manrope"]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Manrope', sans-serif; }
+        h1, h2, h3 { font-family: 'Noto Serif', serif; }
+        
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #131313;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #4d4635;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #eac249;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface">
+<!-- Landing Page Underlay (Simulated) -->
+<header class="fixed top-0 w-full z-50 bg-[#131313]/80 backdrop-blur-xl">
+<div class="flex justify-between items-center px-8 py-6 max-w-7xl mx-auto">
+<div class="text-2xl font-bold tracking-widest text-[#C5A028] uppercase">The Modern Artisan</div>
+<nav class="hidden md:flex gap-8">
+<a class="text-neutral-400 font-medium hover:text-[#C5A028] transition-all duration-300" href="#">Services</a>
+<a class="text-[#C5A028] border-b border-[#C5A028]/30 pb-1" href="#">Barbers</a>
+<a class="text-neutral-400 font-medium hover:text-[#C5A028] transition-all duration-300" href="#">Gallery</a>
+<a class="text-neutral-400 font-medium hover:text-[#C5A028] transition-all duration-300" href="#">Locations</a>
+</nav>
+<button class="bg-primary text-on-primary px-6 py-2 font-bold tracking-wide hover:opacity-90 transition-all">Book Appointment</button>
+</div>
+</header>
+<main class="min-h-screen pt-32 px-8 max-w-7xl mx-auto opacity-20 pointer-events-none">
+<section class="grid grid-cols-12 gap-6">
+<div class="col-span-12 md:col-span-8 h-96 bg-surface-container-low rounded-lg"></div>
+<div class="col-span-12 md:col-span-4 h-96 bg-surface-container-low rounded-lg"></div>
+</section>
+</main>
+<!-- Modal Overlay -->
+<div class="fixed inset-0 z-[60] flex items-center justify-center p-4 md:p-8">
+<!-- Backdrop -->
+<div class="absolute inset-0 bg-surface-dim/90 backdrop-blur-md"></div>
+<!-- Modal Content -->
+<div class="relative w-full max-w-6xl h-full max-h-[850px] overflow-hidden bg-surface-container-lowest rounded-xl border border-outline-variant/10 shadow-2xl flex flex-col">
+<!-- Modal Header -->
+<div class="flex items-center justify-between p-8 border-b border-outline-variant/10">
+<div>
+<h2 class="text-3xl md:text-4xl font-bold text-on-surface">Our Master Artisans</h2>
+<p class="text-on-surface-variant font-body mt-2 uppercase tracking-widest text-xs">Curated Precision &amp; Elite Grooming</p>
+</div>
+<button class="w-12 h-12 flex items-center justify-center rounded-full bg-surface-container-high hover:bg-surface-container-highest transition-colors group">
+<span class="material-symbols-outlined text-on-surface group-hover:rotate-90 transition-transform duration-300">close</span>
+</button>
+</div>
+<!-- Modal Body (Scrollable) -->
+<div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+<!-- Filter Chips -->
+<div class="flex gap-3 mb-10 overflow-x-auto pb-2">
+<span class="px-6 py-2 rounded-full bg-primary text-on-primary text-sm font-bold tracking-wide whitespace-nowrap">All Artisans</span>
+<span class="px-6 py-2 rounded-full bg-surface-container-high text-on-surface text-sm font-medium hover:bg-surface-container-highest cursor-pointer transition-colors whitespace-nowrap">Haircut Specialists</span>
+<span class="px-6 py-2 rounded-full bg-surface-container-high text-on-surface text-sm font-medium hover:bg-surface-container-highest cursor-pointer transition-colors whitespace-nowrap">Beard Architects</span>
+<span class="px-6 py-2 rounded-full bg-surface-container-high text-on-surface text-sm font-medium hover:bg-surface-container-highest cursor-pointer transition-colors whitespace-nowrap">Shave Masters</span>
+</div>
+<!-- Barber Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+<!-- Barber Card 1: Available -->
+<div class="group relative bg-surface-container-low p-1 rounded-lg overflow-hidden transition-all duration-500 hover:bg-outline-variant/20 border border-outline-variant/5">
+<div class="aspect-[4/5] relative overflow-hidden rounded-lg">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="portrait of a professional barber with tattoos and stylish apron in a moody dark studio setting with warm rim lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6KFI3W9jJcCb50cA2Uc3nfwkHy6p9SsarNtW5gEVY4LW1odpyCiNmvnXop4Zzl4mLeeHWXyaRfZiLX7vElYWy4oBFdx5--22J90JuiUzqCLmOMHkkfAbgZkDs9zny-tii3Z4vZUbOty6t0DBPSw2_4yxjErapE-Y3CQkzn3yE0UxGTfO5R6kzkln_LJpif5K6v_4fbcT2GoYKu96lRmZCpIXA6fgG5SCB-2yDQ6RCStZKif4KYvKj8EupSpfHOvXohrsDsrsb-u8"/>
+<div class="absolute top-4 left-4">
+<span class="flex items-center gap-2 px-3 py-1 bg-surface-dim/80 backdrop-blur-md rounded-full border border-primary/20">
+<span class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
+<span class="text-[10px] font-bold uppercase tracking-tighter text-on-surface">Available</span>
+</span>
+</div>
+</div>
+<div class="mt-4 p-3">
+<h3 class="text-lg font-bold text-primary tracking-tight">Julian "The Edge" Rossi</h3>
+<p class="text-on-surface-variant text-[11px] mt-1 leading-tight">Fades, Tapers &amp; Sharp Contours</p>
+<div class="mt-4 flex justify-between items-center">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-[11px] font-bold text-on-surface">4.9</span>
+</div>
+<button class="text-[10px] font-bold uppercase tracking-widest text-on-surface hover:text-primary transition-colors flex items-center gap-1">
+                                    Portfolio <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Barber Card 2: Busy -->
+<div class="group relative bg-surface-container-low p-1 rounded-lg overflow-hidden transition-all duration-500 hover:bg-outline-variant/20 border border-outline-variant/5">
+<div class="aspect-[4/5] relative overflow-hidden rounded-lg">
+<img class="w-full h-full object-cover grayscale transition-all duration-700 group-hover:grayscale-0 group-hover:scale-110" data-alt="handsome barber in dark attire focusing on his work, cinematic low key lighting with golden highlights" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBCKVlU4zepfDin7Z7UhfvWCF5LXa4B2gEA8k6mELS2hfePHiWz9kN5CfGIi78jCdpqKzUlICK0hXmSXKAN7SkDfis0TTph_LKxVuDZPxfmuP-wKXZdVBjcvCIc-6TZQ1KQS_Pn9ucxP1RvufS1Ape4RaChLkIG4RMCsZXUFQ_ENlolgWMkxciZ6oNvzZEZryVnx5I1luFF5YkzXgF6SnZciFP-M7bZqP5VWPRSUwSbm4WoiAjE5VX2ZBKGBUUh5PTKmiLwCD3D1Xk"/>
+<div class="absolute top-4 left-4">
+<span class="flex items-center gap-2 px-3 py-1 bg-surface-dim/80 backdrop-blur-md rounded-full border border-error/20">
+<span class="w-2 h-2 rounded-full bg-error shadow-[0_0_8px_rgba(255,180,171,0.6)]"></span>
+<span class="text-[10px] font-bold uppercase tracking-tighter text-on-surface">Busy</span>
+</span>
+</div>
+</div>
+<div class="mt-4 p-3">
+<h3 class="text-lg font-bold text-primary tracking-tight">Marcus Vane</h3>
+<p class="text-on-surface-variant text-[11px] mt-1 leading-tight">Beard Sculpting &amp; Hot Shave</p>
+<div class="mt-4 flex justify-between items-center">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-[11px] font-bold text-on-surface">5.0</span>
+</div>
+<span class="text-[10px] text-on-surface-variant italic">Next: 45 mins</span>
+</div>
+</div>
+</div>
+<!-- Barber Card 3: On Break -->
+<div class="group relative bg-surface-container-low p-1 rounded-lg overflow-hidden transition-all duration-500 hover:bg-outline-variant/20 border border-outline-variant/5">
+<div class="aspect-[4/5] relative overflow-hidden rounded-lg">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-60" data-alt="mature artisan barber with graying beard and vintage accessories, soft ambient studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCX1mXSHbSMBrsCKIch5YUJ_3OA0I2ZPoH4X9FoCNZOxAcAo82ycqyeNlbI6EvS6JypCgqG9PDP_7b5sIaFBPVwVlVLLmQQyyQ1_qUKR5iZRlIGBvVD8FpmKUFpkPaAoN9jQkP4ca1EZIoyBIWRTTKMuZ1E6y1EyXIS6RFols21vIp3hvDbdEbxYQTaHQ5tn6YffzEjtyf59BKL-kg390uRN3A1Pd9bsQ_aceKOm9RVVI8dfBlxW7KUsaAYN1Ix14iNGYJblOnsuVA"/>
+<div class="absolute top-4 left-4">
+<span class="flex items-center gap-2 px-3 py-1 bg-surface-dim/80 backdrop-blur-md rounded-full border border-secondary/20">
+<span class="w-2 h-2 rounded-full bg-secondary-container"></span>
+<span class="text-[10px] font-bold uppercase tracking-tighter text-on-surface">On Break</span>
+</span>
+</div>
+</div>
+<div class="mt-4 p-3">
+<h3 class="text-lg font-bold text-primary tracking-tight">Silas Thorne</h3>
+<p class="text-on-surface-variant text-[11px] mt-1 leading-tight">Classic Scissors &amp; Vintage Styling</p>
+<div class="mt-4 flex justify-between items-center">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-[11px] font-bold text-on-surface">4.8</span>
+</div>
+<button class="text-[10px] font-bold uppercase tracking-widest text-on-surface hover:text-primary transition-colors flex items-center gap-1">
+                                    Portfolio <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Barber Card 4: Available -->
+<div class="group relative bg-surface-container-low p-1 rounded-lg overflow-hidden transition-all duration-500 hover:bg-outline-variant/20 border border-outline-variant/5">
+<div class="aspect-[4/5] relative overflow-hidden rounded-lg">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="young professional barber with sharp haircut and minimal workspace, clean industrial background with high contrast shadows" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBupC9IinjzZkjPmLSLyF3ZYm0J1SY62toN2ss0M1_BeI8zCIv30uHOzxmwPv-yM4AYml-gmXvXgbYbNbRX6MAhlKEOJiqKJw5-kqguPH4y0dYwv7iUCuLJrsU_pKN2smSJr8HSlronJLbF3NyZMY3GyCrHyGhb0fBIvYfl--FbsiG_N-3lACIeSXNMaU0c0MGlg0hltadqdsnCjVOUHzlvnv5RSqqmFZa-dXizDR0sFi0rFQUE_xWnLsfAEYciVVpVAbmKAxFpOXw"/>
+<div class="absolute top-4 left-4">
+<span class="flex items-center gap-2 px-3 py-1 bg-surface-dim/80 backdrop-blur-md rounded-full border border-primary/20">
+<span class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
+<span class="text-[10px] font-bold uppercase tracking-tighter text-on-surface">Available</span>
+</span>
+</div>
+</div>
+<div class="mt-4 p-3">
+<h3 class="text-lg font-bold text-primary tracking-tight">Leo Castiglione</h3>
+<p class="text-on-surface-variant text-[11px] mt-1 leading-tight">Modern Textures &amp; Styling</p>
+<div class="mt-4 flex justify-between items-center">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-[11px] font-bold text-on-surface">4.7</span>
+</div>
+<button class="text-[10px] font-bold uppercase tracking-widest text-on-surface hover:text-primary transition-colors flex items-center gap-1">
+                                    Portfolio <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Barber Card 5: Available -->
+<div class="group relative bg-surface-container-low p-1 rounded-lg overflow-hidden transition-all duration-500 hover:bg-outline-variant/20 border border-outline-variant/5">
+<div class="aspect-[4/5] relative overflow-hidden rounded-lg">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="female master barber focusing on a beard trim, dramatic low angle lighting, dark workshop atmosphere" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAJPE_rGxHFbn1NjtM0sD35txZnmaRWov2UCt6OJa1nHd1bUvHABrNm78f8zx_6RNNIz8iLDZhE6EBRoEUNsoIuY4Wmsv3q-w5sJQ2Zd1nsdEIWKGMTXDu_iwoWYO3pSff7Y4ra_FlubHxepnBqvAPnI-bORY8DCWLaIEtABJDHd4RCfi8YPpD62QLdx09Eec_6DV9RS5hjdojbqaD7nnfw1W76oFndHEX1TtX13j4GcHp46xewVUAHg9cHcFGCPqigLd95FaMoN0Y"/>
+<div class="absolute top-4 left-4">
+<span class="flex items-center gap-2 px-3 py-1 bg-surface-dim/80 backdrop-blur-md rounded-full border border-primary/20">
+<span class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
+<span class="text-[10px] font-bold uppercase tracking-tighter text-on-surface">Available</span>
+</span>
+</div>
+</div>
+<div class="mt-4 p-3">
+<h3 class="text-lg font-bold text-primary tracking-tight">Elena Moretti</h3>
+<p class="text-on-surface-variant text-[11px] mt-1 leading-tight">Luxury Grooming &amp; Head Therapy</p>
+<div class="mt-4 flex justify-between items-center">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-[11px] font-bold text-on-surface">5.0</span>
+</div>
+<button class="text-[10px] font-bold uppercase tracking-widest text-on-surface hover:text-primary transition-colors flex items-center gap-1">
+                                    Portfolio <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Barber Card 6: Busy -->
+<div class="group relative bg-surface-container-low p-1 rounded-lg overflow-hidden transition-all duration-500 hover:bg-outline-variant/20 border border-outline-variant/5">
+<div class="aspect-[4/5] relative overflow-hidden rounded-lg">
+<img class="w-full h-full object-cover grayscale transition-all duration-700 group-hover:grayscale-0 group-hover:scale-110" data-alt="portrait of a confident barber with glasses in a modern barbershop, soft side lighting and dark wood background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQyLLSzoKuV0x10UhVvXt7bs0eUoryIwY1Y1SfoxySZbg5LH37uHhqcZ6UMbkEWBGqdKY794A9yQrpgt1I7MT7uYvWsMsLW7AQ90FPx2eCPs6BK8adZKiFVAobyCsd8f_m-ivPiMLBhI2LjE0Y85brIz2NfjYOKLDYSoE5HTLTXMSqpRxUw_Ycf-gbUHX48PGJlhqLUlVoLrxT900_eYXRAt3RQsuRF9OuVVyzl3YALt993G3DSmwUII9IP1LZYedt5ShPRUwADGs"/>
+<div class="absolute top-4 left-4">
+<span class="flex items-center gap-2 px-3 py-1 bg-surface-dim/80 backdrop-blur-md rounded-full border border-error/20">
+<span class="w-2 h-2 rounded-full bg-error shadow-[0_0_8px_rgba(255,180,171,0.6)]"></span>
+<span class="text-[10px] font-bold uppercase tracking-tighter text-on-surface">Busy</span>
+</span>
+</div>
+</div>
+<div class="mt-4 p-3">
+<h3 class="text-lg font-bold text-primary tracking-tight">Dominic Hart</h3>
+<p class="text-on-surface-variant text-[11px] mt-1 leading-tight">Precision Buzz Cuts &amp; Line Ups</p>
+<div class="mt-4 flex justify-between items-center">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-[11px] font-bold text-on-surface">4.6</span>
+</div>
+<span class="text-[10px] text-on-surface-variant italic">Next: 15 mins</span>
+</div>
+</div>
+</div>
+<!-- Barber Card 7: Available -->
+<div class="group relative bg-surface-container-low p-1 rounded-lg overflow-hidden transition-all duration-500 hover:bg-outline-variant/20 border border-outline-variant/5">
+<div class="aspect-[4/5] relative overflow-hidden rounded-lg">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="professional male barber smiling in a stylish dark uniform, modern studio backdrop" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXmIBy6-hD7vS0a1Y9H8T6R4N2z5fX3w9O1Y2K3L4M5N6O7P8Q9R0S1T2U3V4W5X6Y7Z8A9B0C1D2E3F4G5H6I7J8K9L0M1N2O3P"/>
+<div class="absolute top-4 left-4">
+<span class="flex items-center gap-2 px-3 py-1 bg-surface-dim/80 backdrop-blur-md rounded-full border border-primary/20">
+<span class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
+<span class="text-[10px] font-bold uppercase tracking-tighter text-on-surface">Available</span>
+</span>
+</div>
+</div>
+<div class="mt-4 p-3">
+<h3 class="text-lg font-bold text-primary tracking-tight">Victor Sterling</h3>
+<p class="text-on-surface-variant text-[11px] mt-1 leading-tight">Master Colorist &amp; Scissor Cuts</p>
+<div class="mt-4 flex justify-between items-center">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-[11px] font-bold text-on-surface">4.9</span>
+</div>
+<button class="text-[10px] font-bold uppercase tracking-widest text-on-surface hover:text-primary transition-colors flex items-center gap-1">
+                                    Portfolio <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Barber Card 8: Available -->
+<div class="group relative bg-surface-container-low p-1 rounded-lg overflow-hidden transition-all duration-500 hover:bg-outline-variant/20 border border-outline-variant/5">
+<div class="aspect-[4/5] relative overflow-hidden rounded-lg">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="young female barber with creative hair style, focused expression, dark artistic barbershop environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-B1C2D3E4F5G6H7I8J9K0L1M2N3O4P5Q6R7S8T9U0V1W2X3Y4Z5A6B7C8D9E0F1G2H3I4J5K6L7M8N9O0P1Q2R3S4T5U6V"/>
+<div class="absolute top-4 left-4">
+<span class="flex items-center gap-2 px-3 py-1 bg-surface-dim/80 backdrop-blur-md rounded-full border border-primary/20">
+<span class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
+<span class="text-[10px] font-bold uppercase tracking-tighter text-on-surface">Available</span>
+</span>
+</div>
+</div>
+<div class="mt-4 p-3">
+<h3 class="text-lg font-bold text-primary tracking-tight">Sasha Grey</h3>
+<p class="text-on-surface-variant text-[11px] mt-1 leading-tight">Texture Specialist &amp; Razor Fades</p>
+<div class="mt-4 flex justify-between items-center">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-[11px] font-bold text-on-surface">4.8</span>
+</div>
+<button class="text-[10px] font-bold uppercase tracking-widest text-on-surface hover:text-primary transition-colors flex items-center gap-1">
+                                    Portfolio <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Modal Footer -->
+<div class="p-8 bg-surface-container-low border-t border-outline-variant/10 flex flex-col md:flex-row items-center justify-between gap-6">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">verified</span>
+<p class="text-on-surface-variant text-sm">All our barbers are certified master artisans with 5+ years experience.</p>
+</div>
+<div class="flex gap-4 w-full md:w-auto">
+<button class="flex-1 md:flex-none px-8 py-4 bg-surface-container-high border border-outline-variant/30 text-on-surface font-bold uppercase tracking-widest text-xs hover:bg-surface-container-highest transition-all">Cancel</button>
+<button class="flex-1 md:flex-none px-10 py-4 bg-primary text-on-primary font-bold uppercase tracking-widest text-xs hover:opacity-90 transition-all shadow-lg shadow-primary/10">Proceed to Booking</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer (Simulated) -->
+<footer class="w-full py-16 px-12 mt-20 bg-[#131313] border-t border-white/5 opacity-50">
+<div class="flex flex-col md:flex-row justify-between items-center gap-8 max-w-7xl mx-auto">
+<div class="text-[#C5A028] font-serif italic text-xl">The Modern Artisan</div>
+<div class="flex gap-6">
+<span class="text-neutral-500 font-sans text-sm tracking-wide uppercase">Privacy</span>
+<span class="text-neutral-500 font-sans text-sm tracking-wide uppercase">Terms</span>
+<span class="text-neutral-500 font-sans text-sm tracking-wide uppercase">Contact</span>
+</div>
+<div class="text-neutral-500 font-sans text-sm tracking-wide uppercase">© 2024 The Modern Artisan. Precision &amp; Prestige.</div>
+</div>
+</footer>
+</body></html>

@@ -1,13 +1,35 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import axios from 'axios'
 
 const RegisterPage = () => {
   const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
+  
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [password, setPassword] = useState('')
+  const [errorMsg, setErrorMsg] = useState('')
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    navigate('/login')
+    setErrorMsg('')
+    try {
+      const formattedPhone = phone.startsWith('0') ? phone : (phone.startsWith('62') ? '0' + phone.slice(2) : '0' + phone)
+      
+      const response = await axios.post('http://localhost:8000/api/register', {
+        name,
+        email,
+        phone: formattedPhone,
+        password
+      })
+      localStorage.setItem('auth_token', response.data.token)
+      localStorage.setItem('user', JSON.stringify(response.data.user))
+      navigate('/')
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.message || 'Registrasi gagal. Silakan periksa kembali data Anda.')
+    }
   }
 
   return (
@@ -62,25 +84,30 @@ const RegisterPage = () => {
                 <p className="text-secondary font-label">Enter the sanctuary of refined grooming.</p>
               </div>
               <form className="space-y-6" onSubmit={handleSubmit}>
+                {errorMsg && (
+                  <div className="bg-red-500/10 border border-red-500/50 text-red-500 p-3 rounded-lg text-sm text-center">
+                    {errorMsg}
+                  </div>
+                )}
                 <div className="space-y-1">
                   <label htmlFor="reg-fullname" className="text-xs uppercase tracking-widest text-primary font-bold">Full Name</label>
-                  <input id="reg-fullname" className="w-full bg-surface-container-highest border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 text-on-surface placeholder:text-secondary/30 py-4 px-0 transition-all outline-none" placeholder="Arthur Morgan" type="text" required />
+                  <input id="reg-fullname" value={name} onChange={e => setName(e.target.value)} className="w-full bg-surface-container-highest border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 text-on-surface placeholder:text-secondary/30 py-4 px-0 transition-all outline-none" placeholder="Arthur Morgan" type="text" required />
                 </div>
                 <div className="space-y-1">
                   <label htmlFor="reg-email" className="text-xs uppercase tracking-widest text-primary font-bold">Email Address</label>
-                  <input id="reg-email" className="w-full bg-surface-container-highest border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 text-on-surface placeholder:text-secondary/30 py-4 px-0 transition-all outline-none" placeholder="artisan@luxury.com" type="email" required />
+                  <input id="reg-email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-surface-container-highest border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 text-on-surface placeholder:text-secondary/30 py-4 px-0 transition-all outline-none" placeholder="artisan@luxury.com" type="email" required />
                 </div>
                 <div className="space-y-1">
                   <label htmlFor="reg-whatsapp" className="text-xs uppercase tracking-widest text-primary font-bold">WhatsApp Number</label>
                   <div className="flex items-center gap-2 border-b-2 border-outline-variant focus-within:border-primary transition-all">
                     <span className="text-secondary/50 font-label px-2">+62</span>
-                    <input id="reg-whatsapp" className="w-full bg-transparent border-none focus:ring-0 text-on-surface placeholder:text-secondary/30 py-4 px-0 outline-none" placeholder="812 3456 7890" type="tel" required />
+                    <input id="reg-whatsapp" value={phone} onChange={e => setPhone(e.target.value)} className="w-full bg-transparent border-none focus:ring-0 text-on-surface placeholder:text-secondary/30 py-4 px-0 outline-none" placeholder="812 3456 7890" type="tel" required />
                   </div>
                 </div>
                 <div className="space-y-1">
                   <label htmlFor="reg-password" className="text-xs uppercase tracking-widest text-primary font-bold">Password</label>
                   <div className="relative">
-                    <input id="reg-password" className="w-full bg-surface-container-highest border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 text-on-surface placeholder:text-secondary/30 py-4 px-0 transition-all outline-none" placeholder="••••••••" type={showPassword ? 'text' : 'password'} required />
+                    <input id="reg-password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-surface-container-highest border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 text-on-surface placeholder:text-secondary/30 py-4 px-0 transition-all outline-none" placeholder="••••••••" type={showPassword ? 'text' : 'password'} required />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-0 top-1/2 -translate-y-1/2 text-secondary/60 hover:text-primary transition-colors">
                       <span className="material-symbols-outlined text-sm">{showPassword ? 'visibility_off' : 'visibility'}</span>
                     </button>

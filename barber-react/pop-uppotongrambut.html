@@ -1,0 +1,231 @@
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&amp;family=Manrope:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-low": "#1c1b1b",
+                    "error": "#ffb4ab",
+                    "surface-dim": "#131313",
+                    "primary": "#eac249",
+                    "secondary-container": "#474747",
+                    "on-tertiary-fixed": "#1a1c1c",
+                    "error-container": "#93000a",
+                    "on-secondary": "#303030",
+                    "surface-tint": "#eac249",
+                    "primary-fixed": "#ffe08b",
+                    "inverse-on-surface": "#313030",
+                    "on-tertiary": "#2f3131",
+                    "on-surface-variant": "#d0c5af",
+                    "surface-container-lowest": "#0e0e0e",
+                    "on-surface": "#e5e2e1",
+                    "on-primary-fixed": "#241a00",
+                    "surface-container-highest": "#353534",
+                    "secondary-fixed-dim": "#c8c6c5",
+                    "on-error-container": "#ffdad6",
+                    "surface-bright": "#393939",
+                    "outline-variant": "#4d4635",
+                    "inverse-primary": "#745b00",
+                    "on-secondary-fixed": "#1b1c1c",
+                    "secondary": "#c8c6c5",
+                    "surface-container": "#201f1f",
+                    "secondary-fixed": "#e4e2e1",
+                    "background": "#131313",
+                    "tertiary-fixed": "#e2e2e2",
+                    "on-primary-fixed-variant": "#584400",
+                    "inverse-surface": "#e5e2e1",
+                    "outline": "#99907c",
+                    "on-primary": "#3d2f00",
+                    "tertiary-fixed-dim": "#c6c6c6",
+                    "surface-variant": "#353534",
+                    "on-secondary-container": "#b6b5b4",
+                    "on-primary-container": "#493800",
+                    "on-background": "#e5e2e1",
+                    "primary-container": "#c5a028",
+                    "surface": "#131313",
+                    "on-error": "#690005",
+                    "tertiary-container": "#a3a4a4",
+                    "primary-fixed-dim": "#eac249",
+                    "on-tertiary-fixed-variant": "#454747",
+                    "tertiary": "#c6c6c6",
+                    "surface-container-high": "#2a2a2a",
+                    "on-secondary-fixed-variant": "#474747",
+                    "on-tertiary-container": "#393a3b"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Noto Serif"],
+                    "display": ["Noto Serif"],
+                    "body": ["Manrope"],
+                    "label": ["Manrope"]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-overlay {
+            backdrop-filter: blur(12px);
+            background: rgba(19, 19, 19, 0.85);
+        }
+        .service-card.active {
+            background-color: #2a2a2a;
+            border-color: #eac249;
+        }
+        .service-card.active h4 {
+            color: #eac249;
+        }
+        .fade-in {
+            animation: fadeIn 0.4s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(1.02); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="bg-background font-body text-on-surface antialiased">
+<!-- TopNavBar (Shared Component) -->
+<nav class="fixed top-0 w-full z-50 bg-[#131313]/80 backdrop-blur-xl border-b border-outline-variant/10">
+<div class="flex justify-between items-center px-8 py-6 max-w-7xl mx-auto">
+<span class="text-2xl font-bold tracking-widest text-[#C5A028] uppercase font-headline">The Modern Artisan</span>
+<div class="hidden md:flex gap-8 items-center">
+<a class="text-neutral-400 font-medium hover:text-[#C5A028] transition-all duration-300 font-serif tracking-tight text-lg" href="#">Services</a>
+<a class="text-neutral-400 font-medium hover:text-[#C5A028] transition-all duration-300 font-serif tracking-tight text-lg" href="#">Barbers</a>
+<a class="text-neutral-400 font-medium hover:text-[#C5A028] transition-all duration-300 font-serif tracking-tight text-lg" href="#">Gallery</a>
+<a class="text-neutral-400 font-medium hover:text-[#C5A028] transition-all duration-300 font-serif tracking-tight text-lg" href="#">Locations</a>
+</div>
+<button class="bg-primary-container text-on-primary-container px-6 py-2 rounded-lg font-bold tracking-wide uppercase transition-transform scale-95 hover:scale-100 active:opacity-80">Book Appointment</button>
+</div>
+</nav>
+<!-- Background Content (Simulated Landing Page) -->
+<main class="pt-32 pb-20 px-8 max-w-7xl mx-auto">
+<div class="grid grid-cols-12 gap-8 items-center min-h-[716px]">
+<div class="col-span-12 lg:col-span-7">
+<h1 class="font-display text-7xl md:text-8xl font-bold text-on-surface leading-tight tracking-tighter mb-6">
+                    Elevating the <span class="text-primary italic">Art</span> of Grooming
+                </h1>
+<p class="text-secondary text-xl max-w-xl mb-10 leading-relaxed">
+                    A fusion of timeless tradition and contemporary precision. Experience the pinnacle of masculine elegance in our digital-ready atelier.
+                </p>
+<div class="flex gap-4">
+<button class="bg-primary px-8 py-4 text-on-primary font-bold uppercase tracking-widest rounded-md hover:opacity-90 transition-all shadow-lg shadow-primary/20" onclick="document.getElementById('price-list-modal').classList.remove('hidden')">View Price List</button>
+<button class="border border-outline-variant px-8 py-4 text-primary font-bold uppercase tracking-widest rounded-md hover:bg-surface-container-low transition-all">Our Story</button>
+</div>
+</div>
+<div class="col-span-12 lg:col-span-5 relative">
+<div class="aspect-[4/5] bg-surface-container-low rounded-xl overflow-hidden relative group">
+<img alt="Professional barber at work" class="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxw2d7gUs4lr00UcUuOQ-3IYgzrwBzO9yMvHP__b3aGZxCFnMeRF4TMWxd3T_BjjpoO90Ns-tnUF-2FiOZO400Ft90cxqqDlAWUtFrak5xgUk2dJ-8vzsNu9WsLvnY9iPrSIVzZVJXZvtP0Mrd03WWPcPhFzTlpuhi4qdcfCeUajbzaPxYdYiGhlCihq3RxQl0cp-3W1LW71-xQjqSj9GDrljsZBa-Ygoqwk867pszp1LNbxSz8KlI__E7u11fbIit26xW4cRfAfo"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60"></div>
+</div>
+</div>
+</div>
+</main>
+<!-- Modal Pop-up (Price List) -->
+<div class="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8" id="price-list-modal">
+<!-- Backdrop -->
+<div class="absolute inset-0 glass-overlay" onclick="this.parentElement.classList.add('hidden')"></div>
+<!-- Modal Content -->
+<div class="relative w-full max-w-6xl bg-surface-container-low rounded-2xl overflow-hidden border border-white/5 shadow-[0_35px_60px_-15px_rgba(0,0,0,0.8)] flex flex-col md:flex-row h-full max-h-[850px]">
+<!-- Close Button -->
+<button class="absolute top-6 right-6 text-on-surface-variant hover:text-primary transition-colors z-20 bg-black/40 p-2 rounded-full backdrop-blur-md" onclick="document.getElementById('price-list-modal').classList.add('hidden')">
+<span class="material-symbols-outlined text-2xl">close</span>
+</button>
+<!-- Visual Left Side (Dynamic Image) -->
+<div class="hidden md:block relative w-3/5 overflow-hidden group">
+<img class="absolute inset-0 w-full h-full object-cover transition-all duration-700 fade-in" id="service-preview-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDywWSecRTU-zWURMEOBlqZmNpgH_AU_V8T29ahiPyIr4fNjUNWR0fdyu686LNTXt2yM5txksdc1DmR_272PhrDKWVtlGwnXriW7XqJ0ug9ZeY7g6XX3QIR8PMbVfnv6LdvGuQHV9d9b-4hvPLXdBHGQDmTW2GpsDz6JusKiJ9N1bmxJO2YlvKswVGuIp17lfPOEIIj-rBO60N6HHxUSghWRyijcxiqnSsFx61eNE9uZSUGHbooLMIILNoMOBlVbJXcE_2WDE9F9KA"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/30"></div>
+<div class="absolute bottom-12 left-12 z-10">
+<div class="flex items-center gap-3 mb-4">
+<div class="h-[1px] w-12 bg-primary"></div>
+<span class="text-primary font-bold uppercase tracking-[0.4em] text-xs">Menu of Excellence</span>
+</div>
+<h2 class="font-display text-5xl font-bold text-white tracking-tight" id="service-preview-title">The Precision Fade</h2>
+</div>
+</div>
+<!-- Price List Right Side -->
+<div class="flex-1 bg-surface-container-low flex flex-col h-full border-l border-white/5">
+<div class="p-8 md:p-12 pb-6">
+<h3 class="font-display text-3xl font-bold text-on-surface mb-2">Our Signature Styles</h3>
+<p class="text-secondary text-sm mb-6">Expertly crafted grooming experiences</p>
+<div class="w-full h-[1px] bg-outline-variant/20 mb-8"></div>
+</div>
+<div class="flex-1 overflow-y-auto px-8 md:px-12 pb-12 space-y-3" id="service-list">
+<!-- Fade Item -->
+<button class="service-card active w-full text-left group flex justify-between items-center p-5 rounded-xl border border-transparent hover:border-primary/30 transition-all cursor-pointer" onmouseenter="updatePreview('The Precision Fade', 'https://lh3.googleusercontent.com/aida-public/AB6AXuDywWSecRTU-zWURMEOBlqZmNpgH_AU_V8T29ahiPyIr4fNjUNWR0fdyu686LNTXt2yM5txksdc1DmR_272PhrDKWVtlGwnXriW7XqJ0ug9ZeY7g6XX3QIR8PMbVfnv6LdvGuQHV9d9b-4hvPLXdBHGQDmTW2GpsDz6JusKiJ9N1bmxJO2YlvKswVGuIp17lfPOEIIj-rBO60N6HHxUSghWRyijcxiqnSsFx61eNE9uZSUGHbooLMIILNoMOBlVbJXcE_2WDE9F9KA', this)">
+<div class="flex-1 pr-6">
+<h4 class="font-display text-lg font-bold text-on-surface mb-1 group-hover:text-primary transition-colors">The Precision Fade</h4>
+<p class="text-secondary/70 text-sm line-clamp-1 italic">Seamless skin-to-length transitions.</p>
+</div>
+<span class="font-display text-lg text-primary font-semibold">$45</span>
+</button>
+<!-- Pompadour Item -->
+<button class="service-card w-full text-left group flex justify-between items-center p-5 rounded-xl border border-transparent hover:border-primary/30 transition-all cursor-pointer" onmouseenter="updatePreview('Modern Pompadour', 'https://lh3.googleusercontent.com/aida-public/AB6AXuAxw2d7gUs4lr00UcUuOQ-3IYgzrwBzO9yMvHP__b3aGZxCFnMeRF4TMWxd3T_BjjpoO90Ns-tnUF-2FiOZO400Ft90cxqqDlAWUtFrak5xgUk2dJ-8vzsNu9WsLvnY9iPrSIVzZVJXZvtP0Mrd03WWPcPhFzTlpuhi4qdcfCeUajbzaPxYdYiGhlCihq3RxQl0cp-3W1LW71-xQjqSj9GDrljsZBa-Ygoqwk867pszp1LNbxSz8KlI__E7u11fbIit26xW4cRfAfo', this)">
+<div class="flex-1 pr-6">
+<h4 class="font-display text-lg font-bold text-on-surface mb-1 group-hover:text-primary transition-colors">Modern Pompadour</h4>
+<p class="text-secondary/70 text-sm line-clamp-1 italic">Classic volume with contemporary texture.</p>
+</div>
+<span class="font-display text-lg text-on-surface/80 group-hover:text-primary transition-colors">$55</span>
+</button>
+<!-- Buzz Cut Item -->
+<button class="service-card w-full text-left group flex justify-between items-center p-5 rounded-xl border border-transparent hover:border-primary/30 transition-all cursor-pointer" onmouseenter="updatePreview('Artisan Buzz Cut', 'https://lh3.googleusercontent.com/aida-public/AB6AXuDywWSecRTU-zWURMEOBlqZmNpgH_AU_V8T29ahiPyIr4fNjUNWR0fdyu686LNTXt2yM5txksdc1DmR_272PhrDKWVtlGwnXriW7XqJ0ug9ZeY7g6XX3QIR8PMbVfnv6LdvGuQHV9d9b-4hvPLXdBHGQDmTW2GpsDz6JusKiJ9N1bmxJO2YlvKswVGuIp17lfPOEIIj-rBO60N6HHxUSghWRyijcxiqnSsFx61eNE9uZSUGHbooLMIILNoMOBlVbJXcE_2WDE9F9KA', this)">
+<div class="flex-1 pr-6">
+<h4 class="font-display text-lg font-bold text-on-surface mb-1 group-hover:text-primary transition-colors">Artisan Buzz Cut</h4>
+<p class="text-secondary/70 text-sm line-clamp-1 italic">Sharp, minimal, and perfectly shaped.</p>
+</div>
+<span class="font-display text-lg text-on-surface/80 group-hover:text-primary transition-colors">$35</span>
+</button>
+<!-- Signature Item -->
+<button class="service-card w-full text-left group flex justify-between items-center p-5 rounded-xl border border-transparent hover:border-primary/30 transition-all cursor-pointer" onmouseenter="updatePreview('The Artisan Signature', 'https://lh3.googleusercontent.com/aida-public/AB6AXuAxw2d7gUs4lr00UcUuOQ-3IYgzrwBzO9yMvHP__b3aGZxCFnMeRF4TMWxd3T_BjjpoO90Ns-tnUF-2FiOZO400Ft90cxqqDlAWUtFrak5xgUk2dJ-8vzsNu9WsLvnY9iPrSIVzZVJXZvtP0Mrd03WWPcPhFzTlpuhi4qdcfCeUajbzaPxYdYiGhlCihq3RxQl0cp-3W1LW71-xQjqSj9GDrljsZBa-Ygoqwk867pszp1LNbxSz8KlI__E7u11fbIit26xW4cRfAfo', this)">
+<div class="flex-1 pr-6">
+<h4 class="font-display text-lg font-bold text-on-surface mb-1 group-hover:text-primary transition-colors">The Artisan Signature</h4>
+<p class="text-secondary/70 text-sm line-clamp-1 italic">Full consultation, haircut, and facial grooming.</p>
+</div>
+<span class="font-display text-lg text-on-surface/80 group-hover:text-primary transition-colors">$85</span>
+</button>
+</div>
+<div class="p-8 border-t border-white/5 bg-surface-container-lowest">
+<button class="w-full bg-primary py-4 rounded-lg text-on-primary font-bold uppercase tracking-widest hover:brightness-110 transition-all">Book This Service</button>
+</div>
+</div>
+</div>
+</div>
+<script>
+      function updatePreview(title, imgSrc, element) {
+        // Update Title
+        document.getElementById('service-preview-title').innerText = title;
+        
+        // Update Image with fade effect
+        const img = document.getElementById('service-preview-img');
+        img.classList.remove('fade-in');
+        void img.offsetWidth; // Trigger reflow
+        img.src = imgSrc;
+        img.classList.add('fade-in');
+
+        // Update active state in list
+        const cards = document.querySelectorAll('.service-card');
+        cards.forEach(card => {
+            card.classList.remove('active');
+            card.querySelector('span').classList.remove('text-primary');
+            card.querySelector('span').classList.add('text-on-surface/80');
+        });
+        element.classList.add('active');
+        element.querySelector('span').classList.add('text-primary');
+        element.querySelector('span').classList.remove('text-on-surface/80');
+      }
+    </script>
+</body></html>
