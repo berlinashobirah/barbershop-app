@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Atur Ulang Kata Sandi - The Modern Artisan</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;700&amp;family=Manrope:wght@400;500;600&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-surface-variant": "#d0c5af",
+                    "surface-variant": "#353534",
+                    "primary-fixed-dim": "#eac249",
+                    "secondary-container": "#474747",
+                    "surface": "#131313",
+                    "secondary-fixed": "#e4e2e1",
+                    "on-secondary-fixed-variant": "#474747",
+                    "background": "#131313",
+                    "tertiary-container": "#a3a4a4",
+                    "surface-container-high": "#2a2a2a",
+                    "on-primary-container": "#493800",
+                    "on-tertiary-container": "#393a3b",
+                    "secondary": "#c8c6c5",
+                    "surface-bright": "#393939",
+                    "on-tertiary": "#2f3131",
+                    "on-primary-fixed": "#241a00",
+                    "surface-container": "#201f1f",
+                    "on-error": "#690005",
+                    "inverse-on-surface": "#313030",
+                    "surface-container-low": "#1c1b1b",
+                    "outline-variant": "#4d4635",
+                    "on-surface": "#e5e2e1",
+                    "error-container": "#93000a",
+                    "on-tertiary-fixed": "#1a1c1c",
+                    "inverse-primary": "#745b00",
+                    "surface-tint": "#eac249",
+                    "primary-fixed": "#ffe08b",
+                    "tertiary": "#c6c6c6",
+                    "on-primary": "#3d2f00",
+                    "error": "#ffb4ab",
+                    "on-secondary": "#303030",
+                    "on-primary-fixed-variant": "#584400",
+                    "outline": "#99907c",
+                    "inverse-surface": "#e5e2e1",
+                    "primary-container": "#c5a028",
+                    "primary": "#eac249",
+                    "on-background": "#e5e2e1",
+                    "surface-dim": "#131313",
+                    "surface-container-lowest": "#0e0e0e",
+                    "surface-container-highest": "#353534",
+                    "on-error-container": "#ffdad6",
+                    "secondary-fixed-dim": "#c8c6c5",
+                    "tertiary-fixed-dim": "#c6c6c6",
+                    "on-tertiary-fixed-variant": "#454747",
+                    "tertiary-fixed": "#e2e2e2",
+                    "on-secondary-fixed": "#1b1c1c",
+                    "on-secondary-container": "#b6b5b4"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Noto Serif"],
+                    "display": ["Noto Serif"],
+                    "body": ["Manrope"],
+                    "label": ["Manrope"]
+            }
+          },
+        },
+      }
+    </script>
+<style>body {
+    font-family: "Manrope", sans-serif
+    }
+h1, h2, h3 {
+    font-family: "Noto Serif", serif
+    }
+.material-symbols-outlined {
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24
+    }
+.bg-waves {
+    background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuANbJtli0wqPIlR9vPewBWF3jW2RhQfqNj3_aOTeQSVGOjeF3Tpe3HNnBKWzoYbfV8Z_shrW0cdPWrhTCqM9cueK5YVwRWuh8Sy5LEBy9aPL94Qk-ZExRSztltAbT-KxX81QQfwPeUkIN_-2nGHhT4iX4YYmJaxf3plMMNwiStY6uuU_utsT7jLbJVJLoDMjphgcnrXwaP_S20BFDNYC2OE_l3gEaOTipRbC1dSTtekIkPRggcHsvasVi8xfrTsfOe8P7TVZy1GPaE), radial-gradient(circle at 20% 30%, rgba(234, 194, 73, 0.05) 0%, transparent 40%), radial-gradient(circle at 80% 70%, rgba(234, 194, 73, 0.03) 0%, transparent 40%)
+    }</style>
+</head>
+<body class="bg-background text-on-surface min-h-screen flex flex-col bg-waves">
+<!-- TopAppBar Shell (Suppressed Labels, only Logo/Brand) -->
+<header class="fixed top-0 w-full z-50 bg-[#131313]/70 backdrop-blur-md flex justify-between items-center px-6 py-4 w-full">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-[#eac249] cursor-pointer scale-95 active:opacity-80 transition-all">arrow_back</span>
+<span class="font-serif text-[#eac249] font-bold tracking-tighter text-lg">The Modern Artisan</span>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow flex items-center justify-center px-6 pt-20 pb-12">
+<div class="w-full max-w-md">
+<!-- Reset Password Card -->
+<div class="bg-surface-container-low p-8 md:p-12 rounded-lg shadow-2xl relative overflow-hidden group">
+<!-- Subtle Decorative Accent -->
+<div class="absolute top-0 left-0 w-1 h-full bg-primary-container"></div>
+<div class="relative z-10">
+<h1 class="text-3xl font-bold text-on-surface mb-2 tracking-tight">Atur Ulang Kata Sandi</h1>
+<p class="text-on-surface-variant text-sm mb-8 leading-relaxed">
+                        Silakan masukkan kata sandi baru Anda di bawah ini.
+                    </p>
+<form class="space-y-6">
+<!-- Input Kata Sandi Baru -->
+<div class="space-y-2">
+<label class="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Kata Sandi Baru</label>
+<div class="relative group">
+<input class="w-full bg-surface-container-highest border-none border-b border-outline-variant focus:ring-0 focus:border-primary text-on-surface py-4 px-4 rounded-md transition-all" placeholder="••••••••" type="password"/>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+</div>
+</div>
+<!-- Input Konfirmasi Kata Sandi Baru -->
+<div class="space-y-2">
+<label class="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Konfirmasi Kata Sandi Baru</label>
+<div class="relative group">
+<input class="w-full bg-surface-container-highest border-none border-b border-outline-variant focus:ring-0 focus:border-primary text-on-surface py-4 px-4 rounded-md transition-all" placeholder="••••••••" type="password"/>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+</div>
+</div>
+<!-- Primary Button -->
+<button class="w-full bg-primary-container hover:bg-primary text-on-primary-container font-bold py-4 rounded-md transition-all transform active:scale-95 shadow-lg flex items-center justify-center gap-2 mt-4" type="submit">
+                            Simpan Kata Sandi
+                            <span class="material-symbols-outlined text-[18px]">lock_reset</span>
+</button>
+</form>
+<!-- Bottom Action -->
+<div class="mt-10 text-center">
+<a class="inline-flex items-center gap-2 text-sm text-secondary hover:text-primary transition-all group" href="#">
+<span class="material-symbols-outlined text-[18px] group-hover:-translate-x-1 transition-transform">arrow_back</span>
+                            Kembali ke Login
+                        </a>
+</div>
+</div>
+</div>
+<!-- Contextual Branding Image -->
+<div class="mt-8 opacity-40 grayscale hover:grayscale-0 transition-all duration-700">
+<img alt="The Modern Artisan Aesthetic" class="w-full h-32 object-cover rounded-lg" data-alt="A cinematic, low-angle shot of a premium artisan barber tool kit resting on a dark marble surface. The scene is illuminated by warm, dramatic spotlighting that highlights the golden metallic textures of the scissors and razors. The overall mood is sophisticated and masculine, utilizing a deep charcoal and artisan gold color palette that perfectly aligns with the high-end digital atelier aesthetic of The Modern Artisan brand." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDBX_OkhG4jAJmkgE06r-gLzU1Kauf1fe_yWC86XWTsJuRjz2mb96NjgfILPU_gCbIUAhN1OyI9lU6L3cbvFYkfapGtACJznbbyplOFwSLqhGlbThtC4C7HPBgFYSaBtJeOdalHluQOzMkKCgu_ryYEKM8sSi9a2rb8mEYCv41d4eRNJ_zxqyQdtoUxbfOqH0VASFXNwlnmDSbvIMIr-hnrydlgi-PBQcghjdrV70dv3rNHQAxbhbVWILOf_KsCkQz1ktVp0vaGODA"/>
+</div>
+</div>
+</main>
+<!-- Footer Decoration (No Navigation for transactional screens) -->
+<footer class="py-8 text-center">
+<p class="text-[10px] text-outline tracking-widest uppercase opacity-50">© 2024 The Modern Artisan Atelier. Crafted with Precision.</p>
+</footer>
+</body></html>

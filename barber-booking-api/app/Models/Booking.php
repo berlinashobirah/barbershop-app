@@ -23,6 +23,8 @@ class Booking extends Model
         'midtrans_order_id',
         'midtrans_transaction_id',
         'points_awarded',
+        'campaign_id',
+        'discount_amount',
     ];
 
     // Relasi balik ke User
@@ -43,5 +45,11 @@ class Booking extends Model
         return $this->belongsToMany(Service::class, 'booking_details')
                     ->withPivot('price_snapshot')
                     ->withTimestamps();
+    }
+
+    // Relasi ke Campaign
+    public function campaign()
+    {
+        return $this->belongsTo(Campaign::class);
     }
 }

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&amp;family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary-container": "#b6b5b4",
+                    "surface-tint": "#eac249",
+                    "on-tertiary": "#2f3131",
+                    "error-container": "#93000a",
+                    "tertiary-container": "#a3a4a4",
+                    "on-error-container": "#ffdad6",
+                    "secondary-fixed-dim": "#c8c6c5",
+                    "on-primary-fixed": "#241a00",
+                    "tertiary": "#c6c6c6",
+                    "on-secondary": "#303030",
+                    "surface-container-high": "#2a2a2a",
+                    "outline": "#99907c",
+                    "on-error": "#690005",
+                    "tertiary-fixed-dim": "#c6c6c6",
+                    "on-secondary-fixed-variant": "#474747",
+                    "secondary-container": "#474747",
+                    "surface": "#131313",
+                    "on-primary-fixed-variant": "#584400",
+                    "surface-container": "#201f1f",
+                    "surface-variant": "#353534",
+                    "primary-container": "#c5a028",
+                    "secondary": "#c8c6c5",
+                    "error": "#ffb4ab",
+                    "surface-container-low": "#1c1b1b",
+                    "inverse-primary": "#745b00",
+                    "on-secondary-fixed": "#1b1c1c",
+                    "on-tertiary-fixed-variant": "#454747",
+                    "on-primary": "#3d2f00",
+                    "surface-bright": "#393939",
+                    "inverse-on-surface": "#313030",
+                    "on-background": "#e5e2e1",
+                    "primary-fixed-dim": "#eac249",
+                    "primary-fixed": "#ffe08b",
+                    "on-surface-variant": "#d0c5af",
+                    "on-primary-container": "#493800",
+                    "surface-container-lowest": "#0e0e0e",
+                    "on-surface": "#e5e2e1",
+                    "surface-dim": "#131313",
+                    "on-tertiary-container": "#393a3b",
+                    "surface-container-highest": "#353534",
+                    "on-tertiary-fixed": "#1a1c1c",
+                    "inverse-surface": "#e5e2e1",
+                    "secondary-fixed": "#e4e2e1",
+                    "outline-variant": "#4d4635",
+                    "background": "#131313",
+                    "primary": "#eac249",
+                    "tertiary-fixed": "#e2e2e2"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Noto Serif"],
+                    "display": ["Noto Serif"],
+                    "body": ["Manrope"],
+                    "label": ["Manrope"]
+            }
+          }
+        }
+      }
+    </script>
+<style>.material-symbols-outlined {
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24
+    }
+.grain-overlay {
+    background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuCgXcwwOAZr1hNXP0bJLMfg8zw9rxOd9L1_fFkIGLRsierx7uqkvabAmtMLXBRzj00Gfrwrn18gS9UobHNNEfLOcYrXkHE45kSE6D6zWzYQCIfUhSgnbkg6S1fW133y2YT9OfqBABfxxlOGtrLp17mxOYOpitM3Ncu8uR3Kfnz4qPcmTuY_iGDMIz_MHiDz8RGrqyrgKyCT-BZAhv4MGIJEsGKpzaTUOsWKDaFnvtmkxoY16cQmb9r-q_awYKmGz0Qc4Qv3AkK_r3s);
+    opacity: 0.03;
+    pointer-events: none
+    }
+.gold-glow {
+    box-shadow: 0 0 40px -10px rgba(197, 160, 40, 0.08)
+    }
+.floating-label-input:focus-within label, .floating-label-input input:not(:placeholder-shown) + label {
+    transform: translatey(-1.5rem) scale(0.85);
+    color: #eac249
+    }</style>
+</head>
+<body class="bg-surface text-on-surface font-body min-h-screen flex flex-col overflow-x-hidden selection:bg-primary-container selection:text-on-primary-container">
+<div class="fixed inset-0 grain-overlay z-0"></div>
+<div class="relative z-10 flex flex-col flex-grow items-center justify-center px-6 py-12">
+<div class="w-full max-w-md">
+<div class="mb-12 text-center">
+<span class="text-3xl font-display font-bold tracking-[0.3em] text-primary uppercase inline-block">
+                    The Modern Artisan
+                </span>
+<div class="mt-2 h-px w-12 bg-primary/30 mx-auto"></div>
+</div>
+<div class="bg-surface-container-low p-8 md:p-12 gold-glow relative group">
+<div class="absolute inset-0 border border-outline-variant/10 pointer-events-none group-hover:border-primary/20 transition-colors duration-500"></div>
+<header class="mb-10">
+<h1 class="text-3xl font-display font-bold text-on-surface mb-3 tracking-tight">
+                        Reset Kata Sandi
+                    </h1>
+<p class="text-on-surface-variant font-body leading-relaxed text-sm">
+                        Masukkan email Anda untuk menerima tautan pemulihan kata sandi. Kami akan mengirimkan instruksi selanjutnya ke kotak masuk Anda.
+                    </p>
+</header>
+<form action="#" class="space-y-8" method="POST">
+<div class="relative floating-label-input">
+<input class="block w-full px-0 py-3 bg-transparent border-0 border-b border-outline-variant focus:ring-0 focus:border-primary transition-all duration-300 text-on-surface text-lg peer" id="email" name="email" placeholder=" " required="" type="email"/>
+<label class="absolute left-0 top-3 text-on-surface-variant transition-all duration-300 pointer-events-none font-medium tracking-wide uppercase text-xs" for="email">
+                            Alamat Email
+                        </label>
+</div>
+<button class="w-full py-5 bg-primary hover:bg-primary-container text-on-primary font-bold tracking-widest uppercase text-sm transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-3" type="submit">
+<span>Kirim Tautan Pemulihan</span>
+<span class="material-symbols-outlined text-lg">arrow_forward</span>
+</button>
+</form>
+<div class="mt-12 text-center">
+<a class="inline-flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors duration-300 text-sm font-medium tracking-wide" href="/login">
+<span class="material-symbols-outlined text-base">keyboard_backspace</span>
+                        Kembali ke Login
+                    </a>
+</div>
+</div>
+<div class="mt-12 flex justify-center items-center gap-6 opacity-30">
+<div class="h-px w-8 bg-outline-variant"></div>
+<div class="text-[10px] tracking-[0.4em] uppercase text-on-surface-variant font-bold">
+                    Est. 2024
+                </div>
+<div class="h-px w-8 bg-outline-variant"></div>
+</div>
+</div>
+</div>
+<div class="fixed bottom-0 left-0 w-full h-1/2 -z-10 overflow-hidden pointer-events-none">
+<div class="absolute bottom-[-10%] right-[-5%] w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px]"></div>
+<div class="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px]"></div>
+</div>
+<footer class="bg-surface-container-lowest w-full py-12 px-8 mt-auto border-t border-white/5 relative z-10">
+<div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+<div class="text-primary font-display italic text-xl tracking-wide">
+                The Modern Artisan
+            </div>
+<div class="flex gap-8">
+<a class="text-neutral-500 hover:text-on-surface transition-colors duration-200 font-label text-xs tracking-widest uppercase" href="#">Privacy</a>
+<a class="text-neutral-500 hover:text-on-surface transition-colors duration-200 font-label text-xs tracking-widest uppercase" href="#">Terms</a>
+<a class="text-neutral-500 hover:text-on-surface transition-colors duration-200 font-label text-xs tracking-widest uppercase" href="#">Contact</a>
+</div>
+<div class="text-neutral-500 font-label text-xs tracking-widest uppercase">
+                © 2024 The Modern Artisan. Precision &amp; Prestige.
+            </div>
+</div>
+</footer>
+</body></html>

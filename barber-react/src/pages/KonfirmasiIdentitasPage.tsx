@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import LoadingScreen from '../components/LoadingScreen'
 
 const KonfirmasiIdentitasPage = () => {
   const navigate = useNavigate()
@@ -46,7 +47,9 @@ const KonfirmasiIdentitasPage = () => {
         booking_date: bookingData.date,
         booking_time: bookingData.time,
         barber_id: bookingData.barberId,
-        service_id: bookingData.serviceId
+        service_id: bookingData.serviceId,
+        addon_ids: bookingData.addonIds,
+        campaign_id: bookingData.campaign_id
       });
       localStorage.removeItem('booking_data');
       localStorage.setItem('last_booking', JSON.stringify(res.data.data));
@@ -85,7 +88,9 @@ const KonfirmasiIdentitasPage = () => {
           booking_date: bookingData.date,
           booking_time: bookingData.time,
           barber_id: bookingData.barberId,
-          service_id: bookingData.serviceId
+          service_id: bookingData.serviceId,
+          addon_ids: bookingData.addonIds,
+          campaign_id: bookingData.campaign_id
         }, {
           headers: { Authorization: `Bearer ${newToken}` }
         });
@@ -118,7 +123,9 @@ const KonfirmasiIdentitasPage = () => {
         booking_date: bookingData.date,
         booking_time: bookingData.time,
         barber_id: bookingData.barberId,
-        service_id: bookingData.serviceId
+        service_id: bookingData.serviceId,
+        addon_ids: bookingData.addonIds,
+        campaign_id: bookingData.campaign_id
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -144,6 +151,7 @@ const KonfirmasiIdentitasPage = () => {
 
   return (
     <div className="dark bg-surface text-on-surface font-body antialiased overflow-x-hidden min-h-screen">
+      {loading && <LoadingScreen />}
       <main className="min-h-screen grid grid-cols-1 md:grid-cols-2">
 
         {/* Left Section: Branding & Identity Form */}

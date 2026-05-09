@@ -1,16 +1,20 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import axios from 'axios'
+import LoadingScreen from '../components/LoadingScreen'
 
 const LoginPage = () => {
   const navigate = useNavigate()
   const [loginId, setLoginId] = useState('')
   const [password, setPassword] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMsg('')
+    setLoading(true)
     try {
       const response = await axios.post('http://localhost:8000/api/login', {
         loginId,
@@ -30,11 +34,14 @@ const LoginPage = () => {
       }
     } catch (err: any) {
       setErrorMsg(err.response?.data?.message || 'Login gagal. Silakan periksa kembali data Anda.')
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
     <div className="dark bg-surface text-on-surface font-body min-h-screen selection:bg-primary selection:text-on-primary">
+      {loading && <LoadingScreen />}
       {/* TopAppBar */}
       <header className="bg-[#131313]/80 backdrop-blur-xl border-b border-white/5 sticky top-0 z-50">
         <nav className="flex justify-between items-center px-8 py-6 max-w-screen-2xl mx-auto w-full">
@@ -126,25 +133,37 @@ const LoginPage = () => {
                     >
                       Password
                     </label>
-                    <a href="#" className="text-xs text-primary hover:underline font-medium">Forgot Password?</a>
+                    <Link to="/forgot-password" className="text-xs text-primary hover:underline font-medium">Forgot Password?</Link>
                   </div>
-                  <input
-                    id="login-password"
-                    className="w-full bg-surface-container-highest border-none focus:ring-1 focus:ring-primary rounded-lg p-4 text-on-surface placeholder:text-outline-variant transition-all outline-none"
-                    placeholder="••••••••"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
+                  <div className="relative">
+                    <input
+                      id="login-password"
+                      className="w-full bg-surface-container-highest border-none focus:ring-1 focus:ring-primary rounded-lg p-4 pr-12 text-on-surface placeholder:text-outline-variant transition-all outline-none"
+                      placeholder="••••••••"
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors focus:outline-none"
+                    >
+                      <span className="material-symbols-outlined select-none text-xl">
+                        {showPassword ? 'visibility_off' : 'visibility'}
+                      </span>
+                    </button>
+                  </div>
                 </div>
                 <button
                   id="btn-login-submit"
                   type="submit"
-                  className="w-full py-4 bg-primary text-on-primary font-bold rounded-lg tracking-widest uppercase hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 group shadow-lg shadow-primary/10"
+                  disabled={loading}
+                  className="w-full py-4 bg-primary text-on-primary font-bold rounded-lg tracking-widest uppercase hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 group shadow-lg shadow-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Continue Journey
-                  <span className="material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                  {loading ? 'Processing...' : 'Continue Journey'}
+                  {!loading && <span className="material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform">arrow_forward</span>}
                 </button>
               </form>
 

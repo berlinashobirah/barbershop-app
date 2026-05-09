@@ -100,13 +100,63 @@ class ScheduleController extends Controller
         ]);
 
         $barber = Barber::findOrFail($id);
+        $oldStatus = $barber->status;
         $barber->status = $request->status;
         $barber->save();
+
+        if ($request->status === 'Absent' && $oldStatus !== 'Absent') {
+            $pendingBookings = \App\Models\Booking::where('barber_id', $barber->id)
+                ->whereIn('status', ['pending', 'arrived', 'processing'])
+                ->get();
+            
+            foreach ($pendingBookings as $booking) {
+                $booking->requires_reschedule = true;
+                $booking->save();
+                $this->sendRescheduleNotification($booking, $barber->name);
+            }
+        }
 
         return response()->json([
             'status' => 'success',
             'message' => 'Status kapster berhasil diupdate.',
             'data' => $barber
         ]);
+    }
+
+    private function sendRescheduleNotification($booking, $barberName)
+    {
+        $booking->load(['user']);
+        $phone = $booking->guest_phone ?? ($booking->user?->phone ?? null);
+        $name = $booking->guest_name ?? ($booking->user?->name ?? 'Kak');
+
+        if (!$phone) return;
+        if (substr($phone, 0, 1) === '0') $phone = '62' . substr($phone, 1);
+
+        $rescheduleLink = "http://localhost:5173/reschedule/" . $booking->unique_code;
+
+        $message = "Halo *{$name}*!\n\n";
+        $message .= "Mohon maaf, kapster *{$barberName}* yang Anda pilih untuk booking *{$booking->unique_code}* saat ini berhalangan hadir.\n\n";
+        $message .= "Silakan lakukan penjadwalan ulang (Reschedule) atau pilih kapster lain secara GRATIS melalui link berikut:\n\n";
+        $message .= "{$rescheduleLink}\n\n";
+        $message .= "Terima kasih atas pengertian Anda. 🙏";
+
+        $fonnteToken = env('FONNTE_TOKEN') ?? config('services.fonnte.token');
+        if (!$fonnteToken) return;
+
+        $curl = curl_init();
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => 'https://api.fonnte.com/send',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => array('target' => $phone, 'message' => $message),
+            CURLOPT_HTTPHEADER => array('Authorization: ' . $fonnteToken),
+        ));
+        curl_exec($curl);
+        curl_close($curl);
     }
 }

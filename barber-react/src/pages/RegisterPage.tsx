@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import axios from 'axios'
+import LoadingScreen from '../components/LoadingScreen'
 
 const RegisterPage = () => {
   const navigate = useNavigate()
@@ -11,10 +12,12 @@ const RegisterPage = () => {
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMsg('')
+    setLoading(true)
     try {
       const formattedPhone = phone.startsWith('0') ? phone : (phone.startsWith('62') ? '0' + phone.slice(2) : '0' + phone)
       
@@ -29,11 +32,14 @@ const RegisterPage = () => {
       navigate('/')
     } catch (err: any) {
       setErrorMsg(err.response?.data?.message || 'Registrasi gagal. Silakan periksa kembali data Anda.')
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
     <div className="dark bg-surface text-on-surface font-body min-h-screen flex flex-col selection:bg-primary selection:text-on-primary">
+      {loading && <LoadingScreen />}
       <header className="fixed top-0 w-full z-50 bg-gradient-to-b from-[#131313] to-transparent">
         <div className="flex justify-between items-center px-6 py-6 w-full max-w-7xl mx-auto">
           <Link to="/" className="font-headline text-primary font-bold tracking-tighter text-2xl">The Modern Artisan</Link>
@@ -109,14 +115,14 @@ const RegisterPage = () => {
                   <div className="relative">
                     <input id="reg-password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-surface-container-highest border-none border-b-2 border-outline-variant focus:border-primary focus:ring-0 text-on-surface placeholder:text-secondary/30 py-4 px-0 transition-all outline-none" placeholder="••••••••" type={showPassword ? 'text' : 'password'} required />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-0 top-1/2 -translate-y-1/2 text-secondary/60 hover:text-primary transition-colors">
-                      <span className="material-symbols-outlined text-sm">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                      <span className="material-symbols-outlined text-xl">{showPassword ? 'visibility_off' : 'visibility'}</span>
                     </button>
                   </div>
                 </div>
                 <div className="pt-4">
-                  <button id="btn-register-submit" type="submit" className="w-full py-4 rounded-lg text-on-primary font-bold tracking-widest uppercase text-sm shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2" style={{ background: 'linear-gradient(135deg, #eac249 0%, #c5a028 100%)' }}>
-                    <span>Create Account</span>
-                    <span className="material-symbols-outlined text-lg">arrow_forward</span>
+                  <button id="btn-register-submit" type="submit" disabled={loading} className="w-full py-4 rounded-lg text-on-primary font-bold tracking-widest uppercase text-sm shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" style={{ background: 'linear-gradient(135deg, #eac249 0%, #c5a028 100%)' }}>
+                    <span>{loading ? 'Processing...' : 'Create Account'}</span>
+                    {!loading && <span className="material-symbols-outlined text-lg">arrow_forward</span>}
                   </button>
                 </div>
               </form>
