@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import LoadingScreen from '../../components/LoadingScreen'
+import AlertModal from '../../components/AlertModal'
 
 const API_BASE = 'http://localhost:8000/api'
 
@@ -63,11 +65,21 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [bookings, setBookings] = useState<Booking[]>([])
   const [filter, setFilter] = useState<'all' | 'pending' | 'processing'>('all')
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
   const [loadingStats, setLoadingStats] = useState(true)
   const [loadingQueue, setLoadingQueue] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [updatingId, setUpdatingId] = useState<number | null>(null)
+  const [now, setNow] = useState(new Date())
+  const [searchQuery, setSearchQuery] = useState('')
+  const [alertConfig, setAlertConfig] = useState({ isOpen: false, message: '', type: 'info' as 'success'|'error'|'info' });
 
+  const closeAlert = () => setAlertConfig(prev => ({ ...prev, isOpen: false }));
+  
+  const dateStr = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB'
+  
   const getToken = () => localStorage.getItem('auth_token')
 
   const fetchStats = useCallback(async () => {
@@ -123,46 +135,68 @@ export default function AdminDashboardPage() {
       // Refresh data setelah update
       await Promise.all([fetchStats(), fetchQueue()])
     } catch {
-      alert('Gagal mengupdate status.')
+      setAlertConfig({ isOpen: true, message: 'Gagal mengupdate status.', type: 'error' })
     } finally {
       setUpdatingId(null)
     }
   }
 
+  // 3. SEMBUNYIKAN STATUS 'CANCELLED' DARI TABEL FE
   const filteredBookings = bookings.filter((b) => {
+    if (b.status === 'cancelled') return false // Otomatis hilangkan yang batal
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      const matchCode = b.unique_code?.toLowerCase().includes(q)
+      const matchName = b.customer_name?.toLowerCase().includes(q)
+      if (!matchCode && !matchName) return false
+    }
+
     if (filter === 'all') return true
     if (filter === 'pending') return b.status === 'pending' || b.status === 'arrived'
     if (filter === 'processing') return b.status === 'processing'
     return true
   })
 
+  const totalPages = Math.ceil(filteredBookings.length / itemsPerPage)
+  const currentBookings = filteredBookings.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filter])
+
   return (
     <>
+      {(loadingStats || loadingQueue) && <LoadingScreen />}
       {/* Header */}
       <header className="flex justify-between items-center px-10 py-8">
         <div>
           <h2 className="text-3xl font-headline font-bold text-on-surface">Halo, Admin</h2>
           <p className="text-secondary text-sm">Selamat datang kembali di Atelier Manajemen.</p>
+
+          <div className="text-left mt-4">
+            <span className="text-[10px] uppercase tracking-[0.3em] text-[#eac249] font-bold block mb-1">
+              Status Hari Ini
+            </span>
+            <p className="text-on-surface font-mono font-medium capitalize">{dateStr} | {timeStr}</p>
+          </div>
         </div>
+        
+        {/* Pencarian & User Profil */}
         <div className="flex items-center gap-6">
+
+
           <div className="relative group">
             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors">
               search
             </span>
             <input
               className="bg-surface-container-highest border-none rounded-lg pl-12 pr-6 py-3 w-72 text-sm focus:ring-1 focus:ring-primary outline-none transition-all text-on-surface placeholder:text-outline-variant"
-              placeholder="Cari Kode Unik..."
+              placeholder="Cari Kode Unik atau Nama..."
               type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <p className="text-xs font-bold text-on-surface">Admin Utama</p>
-              <p className="text-[10px] text-primary uppercase tracking-tighter">Manajemen Atelier</p>
-            </div>
-            <div className="w-10 h-10 rounded-full border border-primary/20 bg-surface-container-highest flex items-center justify-center">
-              <span className="material-symbols-outlined text-primary text-sm">manage_accounts</span>
-            </div>
           </div>
         </div>
       </header>
@@ -269,19 +303,19 @@ export default function AdminDashboardPage() {
                       <td className="px-8 py-6 text-right"><div className="h-8 w-20 bg-surface-container-highest rounded ml-auto" /></td>
                     </tr>
                   ))
-                ) : filteredBookings.length === 0 ? (
+                ) : currentBookings.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-8 py-16 text-center text-secondary text-sm">
                       <span className="material-symbols-outlined text-4xl block mb-2 text-outline">event_available</span>
-                      Tidak ada antrean untuk filter ini hari ini.
+                      Tidak ada antrean untuk filter ini.
                     </td>
                   </tr>
                 ) : (
-                  filteredBookings.map((booking, idx) => (
+                  currentBookings.map((booking, idx) => (
                     <tr key={booking.id} className="hover:bg-white/[0.02] transition-colors">
                       <td className="px-8 py-6">
                         <span className={`font-bold text-lg font-headline ${booking.status === 'processing' ? 'text-primary' : 'text-on-surface'}`}>
-                          #{String(idx + 1).padStart(3, '0')}
+                          #{String((currentPage - 1) * itemsPerPage + idx + 1).padStart(3, '0')}
                         </span>
                         <p className="text-[10px] text-outline mt-1 font-mono uppercase">{booking.unique_code}</p>
                       </td>
@@ -354,8 +388,32 @@ export default function AdminDashboardPage() {
 
           <div className="p-6 bg-surface-container-lowest/50 flex justify-between items-center">
             <p className="text-xs text-secondary">
-              Menampilkan {filteredBookings.length} dari {bookings.length} antrean hari ini
+              Menampilkan {currentBookings.length} dari {filteredBookings.length} antrean hari ini
             </p>
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-secondary hover:text-white hover:bg-surface-container-highest disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                >
+                  <span className="material-symbols-outlined text-sm">chevron_left</span>
+                </button>
+                <span className="text-xs font-bold text-primary px-2">
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-secondary hover:text-white hover:bg-surface-container-highest disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                >
+                  <span className="material-symbols-outlined text-sm">chevron_right</span>
+                </button>
+              </div>
+            )}
+
             <button
               onClick={() => { fetchStats(); fetchQueue() }}
               className="text-primary text-[10px] font-bold uppercase tracking-widest hover:underline flex items-center gap-2"
@@ -380,6 +438,7 @@ export default function AdminDashboardPage() {
           ))}
         </div>
       </footer>
+      <AlertModal isOpen={alertConfig.isOpen} message={alertConfig.message} type={alertConfig.type} onClose={closeAlert} />
     </>
   )
 }

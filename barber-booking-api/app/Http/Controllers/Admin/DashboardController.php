@@ -14,16 +14,27 @@ class DashboardController extends Controller
             return response()->json(['message' => 'Akses ditolak. Anda bukan Admin.'], 403);
         }
 
-        $today = now()->toDateString();
+        $month = $request->query('month'); // format: YYYY-MM
 
-        $totalToday     = Booking::where('booking_date', $today)->count();
-        $processing     = Booking::where('booking_date', $today)
-                            ->whereIn('status', ['arrived', 'processing'])->count();
-        $completed      = Booking::where('booking_date', $today)
-                            ->where('status', 'completed')->count();
-        $revenue        = Booking::where('booking_date', $today)
-                            ->where('status', 'completed')
-                            ->sum('total_amount');
+        $query = Booking::query();
+
+        if ($month) {
+            $parts = explode('-', $month);
+            if (count($parts) == 2) {
+                $query->whereYear('booking_date', $parts[0])
+                      ->whereMonth('booking_date', $parts[1]);
+            }
+        } else {
+            $query->where('booking_date', now()->toDateString());
+        }
+
+        // Jangan hitung yang cancelled untuk total
+        $query->where('status', '!=', 'cancelled');
+
+        $totalToday     = (clone $query)->count();
+        $processing     = (clone $query)->whereIn('status', ['arrived', 'processing'])->count();
+        $completed      = (clone $query)->where('status', 'completed')->count();
+        $revenue        = (clone $query)->where('status', 'completed')->sum('total_amount');
 
         return response()->json([
             'status' => 'success',

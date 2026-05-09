@@ -8,12 +8,33 @@ use Illuminate\Http\Request;
 
 class BookingController extends Controller
 {
+    private function autoCancelExpiredBookings()
+    {
+        $nowDate = now()->toDateString();
+        // Batalkan jika sudah lewat 1 jam setelah jam booking
+        $oneHourAgoTime = now()->subHour()->toTimeString();
+
+        Booking::where('status', 'pending')
+            ->where(function ($query) use ($nowDate, $oneHourAgoTime) {
+                // Kondisi 1: Batalkan jika tanggal booking sudah lewat (kemarin, dst)
+                $query->where('booking_date', '<', $nowDate)
+                    // Kondisi 2: Batalkan jika tanggal hari ini, TAPI sudah lewat 1 jam lebih dari jam booking
+                    ->orWhere(function ($q) use ($nowDate, $oneHourAgoTime) {
+                        $q->where('booking_date', $nowDate)
+                            ->where('booking_time', '<', $oneHourAgoTime);
+                    });
+            })
+            ->update(['status' => 'cancelled']);
+    }
+
     public function today(Request $request)
     {
         // 1. Cek apakah yang akses ini benar-benar Admin
         if ($request->user()->role !== 'admin') {
             return response()->json(['message' => 'Akses ditolak. Anda bukan Admin.'], 403);
         }
+
+        $this->autoCancelExpiredBookings();
 
         // 2. Ambil tanggal hari ini secara dinamis (format: YYYY-MM-DD)
         $today = now()->toDateString();
@@ -33,15 +54,15 @@ class BookingController extends Controller
                 return [
                     'id'           => $booking->id,
                     'unique_code'  => $booking->unique_code,
-                    'customer_name'=> $booking->guest_name ?? ($booking->user?->name ?? 'N/A'),
-                    'customer_phone'=> $booking->guest_phone ?? ($booking->user?->phone ?? '-'),
-                    'customer_type'=> $booking->user_id ? 'Member' : 'Guest',
+                    'customer_name' => $booking->guest_name ?? ($booking->user?->name ?? 'N/A'),
+                    'customer_phone' => $booking->guest_phone ?? ($booking->user?->phone ?? '-'),
+                    'customer_type' => $booking->user_id ? 'Member' : 'Guest',
                     'barber_name'  => $booking->barber?->name ?? 'Belum ditentukan',
                     'service_name' => $serviceName,
                     'booking_date' => $booking->booking_date,
                     'booking_time' => $booking->booking_time,
                     'status'       => $booking->status,
-                    'payment_status'=> $booking->payment_status,
+                    'payment_status' => $booking->payment_status,
                     'total_amount' => $booking->total_amount,
                 ];
             });
@@ -59,6 +80,8 @@ class BookingController extends Controller
             return response()->json(['message' => 'Akses ditolak. Anda bukan Admin.'], 403);
         }
 
+        $this->autoCancelExpiredBookings();
+
         $query = Booking::with(['user', 'barber']);
 
         // Filter berdasarkan status jika ada
@@ -71,11 +94,28 @@ class BookingController extends Controller
             $query->where('booking_date', now()->toDateString());
         }
 
+        // Filter berdasarkan tanggal jika ada
+        if ($request->has('date') && !empty($request->date)) {
+            $query->where('booking_date', $request->date);
+        }
+
+        // Pencarian berdasarkan nama customer atau kode unik
+        if ($request->has('search') && !empty($request->search)) {
+            $search = strtolower($request->search);
+            $query->where(function ($q) use ($search) {
+                $q->whereRaw('LOWER(unique_code) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(guest_name) LIKE ?', ["%{$search}%"])
+                    ->orWhereHas('user', function ($uq) use ($search) {
+                        $uq->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
+                    });
+            });
+        }
+
         // Urutkan dari terbaru
         $query->orderBy('booking_date', 'desc')->orderBy('booking_time', 'desc');
 
-        // Pagination: 15 per halaman
-        $paginated = $query->paginate(15);
+        // Pagination: 10 per halaman
+        $paginated = $query->paginate(10);
 
         $items = collect($paginated->items())->map(function ($booking) {
             $serviceName = \Illuminate\Support\Facades\DB::table('booking_details')
@@ -87,14 +127,14 @@ class BookingController extends Controller
                 'id'            => $booking->id,
                 'unique_code'   => $booking->unique_code,
                 'customer_name' => $booking->guest_name ?? ($booking->user?->name ?? 'N/A'),
-                'customer_phone'=> $booking->guest_phone ?? ($booking->user?->phone ?? '-'),
+                'customer_phone' => $booking->guest_phone ?? ($booking->user?->phone ?? '-'),
                 'customer_type' => $booking->user_id ? 'Member' : 'Guest',
                 'barber_name'   => $booking->barber?->name ?? 'Belum ditentukan',
                 'service_name'  => $serviceName,
                 'booking_date'  => $booking->booking_date,
                 'booking_time'  => $booking->booking_time,
                 'status'        => $booking->status,
-                'payment_status'=> $booking->payment_status,
+                'payment_status' => $booking->payment_status,
                 'total_amount'  => $booking->total_amount,
             ];
         });
@@ -128,7 +168,7 @@ class BookingController extends Controller
             foreach ($booking->services as $service) {
                 $totalPoints += $service->points_reward;
             }
-            
+
             $user = $booking->user;
             $user->points += $totalPoints;
             $user->save();

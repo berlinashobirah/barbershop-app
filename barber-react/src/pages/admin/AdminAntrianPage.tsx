@@ -1,10 +1,13 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { usePublicSettings } from '../../hooks/usePublicSettings'
+import LoadingScreen from '../../components/LoadingScreen'
+import AlertModal from '../../components/AlertModal'
 
 const API_BASE = 'http://localhost:8000/api'
 
 type BookingStatus = 'pending' | 'arrived' | 'processing' | 'completed' | 'cancelled'
-type FilterType = 'all' | 'pending' | 'arrived' | 'processing' | 'completed'
+type FilterType = 'all' | 'pending' | 'arrived' | 'processing' | 'completed' | 'cancelled'
 
 interface Booking {
   id: number
@@ -63,18 +66,25 @@ const FILTERS: { key: FilterType; label: string }[] = [
   { key: 'arrived',    label: 'Hadir' },
   { key: 'processing', label: 'Diproses' },
   { key: 'completed',  label: 'Selesai' },
+  { key: 'cancelled',  label: 'Dibatalkan' },
 ]
 
 export default function AdminAntrianPage() {
   const navigate = useNavigate()
+  const settings = usePublicSettings()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [filter, setFilter] = useState<FilterType>('all')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [dateFilter, setDateFilter] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [updatingId, setUpdatingId] = useState<number | null>(null)
   const [page, setPage] = useState(1)
   const [lastPage, setLastPage] = useState(1)
   const [total, setTotal] = useState(0)
+  const [alertConfig, setAlertConfig] = useState({ isOpen: false, message: '', type: 'info' as 'success'|'error'|'info' })
+
+  const closeAlert = () => setAlertConfig(prev => ({ ...prev, isOpen: false }))
 
   // Live date & time
   const [now, setNow] = useState(new Date())
@@ -85,12 +95,14 @@ export default function AdminAntrianPage() {
 
   const getToken = () => localStorage.getItem('auth_token')
 
-  const fetchBookings = useCallback(async (f: FilterType, p: number) => {
+  const fetchBookings = useCallback(async (f: FilterType, p: number, search: string, date: string) => {
     setLoading(true)
     setError(null)
     try {
       const params = new URLSearchParams({ page: String(p) })
       if (f !== 'all') params.set('status', f)
+      if (search) params.set('search', search)
+      if (date) params.set('date', date)
       const res = await fetch(`${API_BASE}/admin/bookings/all?${params}`, {
         headers: { Authorization: `Bearer ${getToken()}`, Accept: 'application/json' },
       })
@@ -109,12 +121,15 @@ export default function AdminAntrianPage() {
   }, [navigate])
 
   useEffect(() => {
-    fetchBookings(filter, 1)
-  }, [filter, fetchBookings])
+    const delayDebounce = setTimeout(() => {
+      fetchBookings(filter, 1, searchQuery, dateFilter)
+    }, 500)
+    return () => clearTimeout(delayDebounce)
+  }, [filter, searchQuery, dateFilter, fetchBookings])
 
   const handlePageChange = (newPage: number) => {
     if (newPage < 1 || newPage > lastPage) return
-    fetchBookings(filter, newPage)
+    fetchBookings(filter, newPage, searchQuery, dateFilter)
   }
 
   const updateStatus = async (id: number, newStatus: BookingStatus) => {
@@ -130,9 +145,9 @@ export default function AdminAntrianPage() {
         body: JSON.stringify({ status: newStatus }),
       })
       if (!res.ok) throw new Error()
-      fetchBookings(filter, page)
+      fetchBookings(filter, page, searchQuery, dateFilter)
     } catch {
-      alert('Gagal mengupdate status. Coba lagi.')
+      setAlertConfig({ isOpen: true, message: 'Gagal mengupdate status. Coba lagi.', type: 'error' })
     } finally {
       setUpdatingId(null)
     }
@@ -145,11 +160,9 @@ export default function AdminAntrianPage() {
     completed:  bookings.filter((b) => b.status === 'completed').length,
   }
 
-  const dateStr = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-  const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB'
-
   return (
     <div className="p-10 min-h-screen">
+      {loading && <LoadingScreen />}
       {/* Header */}
       <section className="mb-12">
         <div className="flex items-end justify-between mb-8">
@@ -158,12 +171,6 @@ export default function AdminAntrianPage() {
             <p className="text-zinc-500 font-medium tracking-wide mt-2 italic">
               Kendali presisi untuk pengalaman pelanggan yang tak terlupakan.
             </p>
-          </div>
-          <div className="text-right">
-            <span className="text-[10px] uppercase tracking-[0.3em] text-[#eac249] font-bold block mb-1">
-              Status Hari Ini
-            </span>
-            <p className="text-on-surface font-mono font-medium capitalize">{dateStr} | {timeStr}</p>
           </div>
         </div>
 
@@ -215,7 +222,7 @@ export default function AdminAntrianPage() {
         <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm flex items-center gap-2">
           <span className="material-symbols-outlined text-sm">error</span>
           {error}
-          <button onClick={() => fetchBookings(filter, page)} className="ml-auto text-xs underline">Coba Lagi</button>
+          <button onClick={() => fetchBookings(filter, page, searchQuery, dateFilter)} className="ml-auto text-xs underline">Coba Lagi</button>
         </div>
       )}
 
@@ -228,7 +235,7 @@ export default function AdminAntrianPage() {
               <button
                 key={key}
                 onClick={() => { setFilter(key); setPage(1) }}
-                className={`px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${
+                className={`px-3 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${
                   filter === key
                     ? 'bg-[#eac249] text-[#3d2f00] shadow-lg shadow-[#eac249]/10'
                     : 'bg-surface-container-high text-zinc-400 hover:text-white'
@@ -238,13 +245,50 @@ export default function AdminAntrianPage() {
               </button>
             ))}
           </div>
-          <button
-            onClick={() => fetchBookings(filter, page)}
-            className="flex items-center gap-2 text-xs font-bold text-zinc-400 hover:text-white transition-colors"
-          >
-            <span className="material-symbols-outlined text-sm">refresh</span>
-            Refresh
-          </button>
+          
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="relative group">
+              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-[#eac249] transition-colors text-sm">
+                search
+              </span>
+              <input
+                className="bg-surface-container-high border border-zinc-800 rounded-lg pl-10 pr-4 py-2 w-full md:w-64 text-sm focus:border-[#eac249] focus:ring-1 focus:ring-[#eac249] outline-none transition-all text-white placeholder:text-zinc-500"
+                placeholder="Cari nama atau kode..."
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            
+            <div className="relative group">
+              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-[#eac249] transition-colors text-sm">
+                calendar_today
+              </span>
+              <input
+                className="bg-surface-container-high border border-zinc-800 rounded-lg pl-10 pr-4 py-2 text-sm focus:border-[#eac249] focus:ring-1 focus:ring-[#eac249] outline-none transition-all text-white appearance-none"
+                type="date"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                style={{ colorScheme: 'dark' }}
+              />
+              {dateFilter && (
+                <button 
+                  onClick={() => setDateFilter('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-red-400"
+                >
+                  <span className="material-symbols-outlined text-sm">close</span>
+                </button>
+              )}
+            </div>
+
+            <button
+              onClick={() => fetchBookings(filter, page, searchQuery, dateFilter)}
+              className="flex items-center gap-2 text-xs font-bold text-zinc-400 hover:text-white transition-colors p-2"
+              title="Refresh"
+            >
+              <span className="material-symbols-outlined text-lg">refresh</span>
+            </button>
+          </div>
         </div>
 
         {/* Table */}
@@ -276,7 +320,7 @@ export default function AdminAntrianPage() {
                   <tr key={booking.id} className="hover:bg-zinc-900/20 transition-colors group">
                     <td className="px-8 py-6">
                       <span className={`font-headline text-xl font-bold ${booking.status === 'processing' ? 'text-[#eac249]' : 'text-zinc-400'}`}>
-                        #{String((page - 1) * 15 + idx + 1).padStart(3, '0')}
+                        #{String((page - 1) * 10 + idx + 1).padStart(3, '0')}
                       </span>
                       <p className="text-[10px] text-zinc-600 mt-1 uppercase tracking-wider font-mono">{booking.unique_code}</p>
                     </td>
@@ -395,7 +439,10 @@ export default function AdminAntrianPage() {
 
       {/* Action Grid */}
       <section className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="p-8 bg-zinc-900/40 rounded-xl border border-zinc-800/30 flex items-center justify-between group hover:border-[#eac249]/30 transition-all cursor-pointer">
+        <div 
+          onClick={() => window.print()}
+          className="p-8 bg-zinc-900/40 rounded-xl border border-zinc-800/30 flex items-center justify-between group hover:border-[#eac249]/30 transition-all cursor-pointer"
+        >
           <div>
             <h3 className="font-headline text-xl font-bold text-white mb-1">Cetak Laporan Harian</h3>
             <p className="text-xs text-zinc-500 uppercase tracking-widest">Format PDF & CSV</p>
@@ -405,7 +452,7 @@ export default function AdminAntrianPage() {
           </div>
         </div>
         <div
-          onClick={() => fetchBookings(filter, page)}
+          onClick={() => fetchBookings(filter, page, searchQuery, dateFilter)}
           className="p-8 bg-zinc-900/40 rounded-xl border border-zinc-800/30 flex items-center justify-between group hover:border-[#eac249]/30 transition-all cursor-pointer"
         >
           <div>
@@ -417,6 +464,96 @@ export default function AdminAntrianPage() {
           </div>
         </div>
       </section>
+
+      <style>{`
+        @media print {
+          /* Hide standard screen layout elements */
+          body * { visibility: hidden !important; }
+          
+          /* Display only daily queue print layout */
+          #print-laporan, #print-laporan * { visibility: visible !important; display: block !important; }
+          #print-laporan {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            background-color: #131313 !important;
+            color: #e5e2e1 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            font-family: 'Manrope', sans-serif !important;
+          }
+          #print-laporan table { display: table !important; width: 100% !important; border-collapse: collapse !important; }
+          #print-laporan thead { display: table-header-group !important; }
+          #print-laporan tbody { display: table-row-group !important; }
+          #print-laporan tr { display: table-row !important; }
+          #print-laporan th, #print-laporan td { display: table-cell !important; }
+          #print-laporan .flex { display: flex !important; }
+          #print-laporan .grid { display: grid !important; }
+          @page { margin: 1cm; size: portrait; }
+        }
+      `}</style>
+
+      {/* ── Beautiful Print-only Template (Daily Queue) ── */}
+      <div id="print-laporan" className="hidden">
+        <div className="h-2 w-full bg-gradient-to-r from-primary/20 via-primary to-primary/20"></div>
+        <header className="px-16 pt-16 pb-12 flex justify-between items-end border-b border-outline-variant/5">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-primary flex items-center justify-center rounded-sm">
+                <span className="material-symbols-outlined text-surface text-3xl" style={{ fontVariationSettings: '"FILL" 1' }}>content_cut</span>
+              </div>
+              <div>
+                <h1 className="text-primary font-serif font-black uppercase tracking-widest text-2xl">{settings?.shop_name || 'The Modern Artisan'}</h1>
+                <p className="text-[10px] uppercase tracking-[0.3em] text-secondary font-bold opacity-70">Premium Grooming Atelier</p>
+              </div>
+            </div>
+          </div>
+          <div className="text-right">
+            <h2 className="text-on-surface font-serif text-3xl font-light italic">Daftar Antrean Harian</h2>
+            <p className="text-secondary font-medium tracking-tight mt-1">Tanggal: {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+          </div>
+        </header>
+
+        <main className="px-16 py-12 flex-grow">
+          <section className="mb-12">
+            <div className="flex items-center gap-4 mb-8">
+              <span className="h-[1px] w-8 bg-primary"></span>
+              <h3 className="font-serif text-xl font-bold tracking-tight uppercase text-primary">Daftar Pelanggan Hari Ini</h3>
+            </div>
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-surface-container-highest/50">
+                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-secondary font-black">No. / Kode</th>
+                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-secondary font-black">Nama Pelanggan</th>
+                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-secondary font-black">Layanan</th>
+                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-secondary font-black">Kapster</th>
+                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-secondary font-black">Jam</th>
+                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-secondary font-black text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-outline-variant/10">
+                {bookings.map((booking, idx) => (
+                  <tr key={booking.id} className="group hover:bg-surface-container-low transition-colors">
+                    <td className="px-6 py-5 text-sm font-mono text-primary">#{String(idx + 1).padStart(3, '0')} ({booking.unique_code})</td>
+                    <td className="px-6 py-5 text-sm font-bold text-on-surface">
+                      <p className="text-white font-bold">{booking.customer_name}</p>
+                      <p className="text-xs text-secondary">{booking.customer_phone}</p>
+                    </td>
+                    <td className="px-6 py-5 text-sm text-secondary">{booking.service_name}</td>
+                    <td className="px-6 py-5 text-sm text-on-surface/80">{booking.barber_name}</td>
+                    <td className="px-6 py-5 text-sm text-secondary">{booking.booking_time?.slice(0, 5)}</td>
+                    <td className="px-6 py-5 text-sm text-center">
+                      <span className="px-2 py-1 bg-[#eac249]/20 text-[#eac249] text-[10px] font-bold rounded uppercase tracking-wider">{booking.status}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        </main>
+      </div>
+      <AlertModal isOpen={alertConfig.isOpen} message={alertConfig.message} type={alertConfig.type} onClose={closeAlert} />
     </div>
   )
 }

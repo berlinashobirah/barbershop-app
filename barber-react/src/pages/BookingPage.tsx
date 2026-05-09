@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import axios from 'axios'
+import LoadingScreen from '../components/LoadingScreen'
 
 
 interface Service {
@@ -10,6 +11,7 @@ interface Service {
   price: number | string;
   image: string | null;
   description: string | null;
+  is_addon?: boolean;
 }
 
 interface Barber {
@@ -26,27 +28,55 @@ interface TimeSlot {
   is_full: boolean;
 }
 
+interface Campaign {
+  id: number;
+  title: string;
+  description: string;
+  image: string | null;
+  discount_type: string;
+  service_id: number | null;
+  required_points: number;
+  discount_amount: string | number;
+}
+
 const BookingPage = () => {
   const navigate = useNavigate()
   
   // Auth State — dibaca dari localStorage di dalam komponen agar reaktif
   const [token] = useState(() => localStorage.getItem('auth_token'))
-  const [user] = useState(() => {
+  const [user, setUser] = useState(() => {
     const str = localStorage.getItem('user')
     return str ? JSON.parse(str) : null
   })
+
+  useEffect(() => {
+    if (token) {
+      axios.get('http://localhost:8000/api/user', {
+        headers: { Authorization: `Bearer ${token}` }
+      }).then((res) => {
+        setUser(res.data)
+        localStorage.setItem('user', JSON.stringify(res.data))
+      }).catch((err) => console.error('Error fetching user', err))
+    }
+  }, [token])
 
   // Data State
   const [services, setServices] = useState<Service[]>([])
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([])
   const [availableBarbers, setAvailableBarbers] = useState<Barber[]>([])
+  const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [loading, setLoading] = useState(true)
 
   // Selection State
   const [selectedService, setSelectedService] = useState<number | null>(null)
+  const [selectedAddons, setSelectedAddons] = useState<number[]>([])
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [selectedTime, setSelectedTime] = useState<string | null>(null)
   const [selectedBarber, setSelectedBarber] = useState<number | null>(null)
+  const [selectedCampaign, setSelectedCampaign] = useState<number | null>(null)
+
+  const mainServices = services.filter(s => !s.is_addon)
+  const addonServices = services.filter(s => s.is_addon)
 
   // Calendar State
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date())
@@ -55,11 +85,16 @@ const BookingPage = () => {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const res = await axios.get('http://localhost:8000/api/services');
-        setServices(res.data.data);
-        if (res.data.data.length > 0) {
-          setSelectedService(res.data.data[0].id);
+        const [resServices, resCampaigns] = await Promise.all([
+          axios.get('http://localhost:8000/api/services'),
+          axios.get('http://localhost:8000/api/campaigns')
+        ]);
+        setServices(resServices.data.data);
+        const mains = resServices.data.data.filter((s: Service) => !s.is_addon);
+        if (mains.length > 0) {
+          setSelectedService(mains[0].id);
         }
+        setCampaigns(resCampaigns.data);
       } catch (error) {
         console.error('Error fetching services:', error);
       } finally {
@@ -151,10 +186,16 @@ const BookingPage = () => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(price));
   };
 
+  const getImageUrl = (imagePath: string | null) => {
+    if (!imagePath) return '';
+    if (imagePath.startsWith('http')) return imagePath;
+    return `http://localhost:8000${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+  };
+
   const service = services.find((s) => s.id === selectedService);
   const barber = availableBarbers.find((b) => b.id === selectedBarber);
 
-  if (loading) return <div className="min-h-screen bg-surface flex items-center justify-center text-primary">Memuat data...</div>;
+  if (loading) return <LoadingScreen />;
 
   return (
     <div className="dark bg-surface text-on-surface font-body selection:bg-primary/30 selection:text-primary">
@@ -194,14 +235,18 @@ const BookingPage = () => {
                 <h2 className="font-headline text-2xl font-bold tracking-tight">Pilih Layanan Utama</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {services.map((svc) => (
+                {mainServices.map((svc) => (
                   <div
                     key={svc.id}
                     onClick={() => setSelectedService(svc.id)}
                     className={`bg-surface-container-low p-6 rounded-lg border-l-4 transition-all cursor-pointer group ${selectedService === svc.id ? 'border-primary' : 'border-primary/30 hover:border-primary'}`}
                   >
                     <div className="flex justify-between items-start mb-4">
-                      <span className="material-symbols-outlined text-primary text-3xl">content_cut</span>
+                      {svc.image ? (
+                        <img src={getImageUrl(svc.image)} alt={svc.name} className="w-12 h-12 object-cover rounded-md" />
+                      ) : (
+                        <span className="material-symbols-outlined text-primary text-3xl">content_cut</span>
+                      )}
                       <span className="text-primary font-bold">{formatRupiah(svc.price)}</span>
                     </div>
                     <h3 className="font-headline text-xl font-bold mb-2 group-hover:text-primary transition-colors">{svc.name}</h3>
@@ -212,6 +257,42 @@ const BookingPage = () => {
                 ))}
               </div>
             </section>
+
+            {/* Section 1.5: Add-Ons */}
+            {addonServices.length > 0 && (
+              <section>
+                <div className="flex items-center gap-3 mb-6">
+                  <span className="text-primary font-headline text-2xl italic">+</span>
+                  <h2 className="font-headline text-2xl font-bold tracking-tight">Tambah Add-Ons (Opsional)</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {addonServices.map((addon) => {
+                    const isSelected = selectedAddons.includes(addon.id);
+                    return (
+                      <div
+                        key={addon.id}
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedAddons(selectedAddons.filter(id => id !== addon.id));
+                          } else {
+                            setSelectedAddons([...selectedAddons, addon.id]);
+                          }
+                        }}
+                        className={`bg-surface-container-low p-4 rounded-lg border-l-4 transition-all cursor-pointer flex items-center gap-4 ${isSelected ? 'border-primary bg-primary/5' : 'border-outline-variant hover:border-primary/50'}`}
+                      >
+                        <div className={`w-6 h-6 rounded-md flex items-center justify-center border transition-colors ${isSelected ? 'bg-primary border-primary text-on-primary' : 'border-outline-variant text-transparent'}`}>
+                          <span className="material-symbols-outlined text-sm font-bold">check</span>
+                        </div>
+                        <div className="flex-grow">
+                          <h4 className="font-bold text-on-surface">{addon.name}</h4>
+                          <span className="text-sm text-primary font-semibold">+{formatRupiah(addon.price)}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
 
             {/* Section 2: Waktu */}
             <section>
@@ -280,22 +361,34 @@ const BookingPage = () => {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       {availableSlots.map((slot) => {
                         const isSelected = selectedTime === slot.time;
+                        const isToday = selectedDate.toDateString() === new Date().toDateString();
+                        let isPastTime = false;
+                        if (isToday) {
+                          const [slotHour, slotMinute] = slot.time.split(':').map(Number);
+                          const now = new Date();
+                          const nowHour = now.getHours();
+                          const nowMinute = now.getMinutes();
+                          if (slotHour < nowHour || (slotHour === nowHour && slotMinute <= nowMinute)) {
+                            isPastTime = true;
+                          }
+                        }
+
                         return (
                           <button
                             key={slot.time}
-                            disabled={slot.is_full}
-                            onClick={() => !slot.is_full && setSelectedTime(slot.time)}
+                            disabled={slot.is_full || isPastTime}
+                            onClick={() => !slot.is_full && !isPastTime && setSelectedTime(slot.time)}
                             className={`p-4 rounded-md text-center transition-all ${
                               isSelected
                                 ? 'bg-primary text-on-primary border border-primary'
-                                : slot.is_full
+                                : (slot.is_full || isPastTime)
                                 ? 'bg-surface-container-lowest border border-transparent opacity-40 cursor-not-allowed'
                                 : 'bg-surface-container-high border border-outline-variant hover:border-primary'
                             }`}
                           >
                             <div className="text-lg font-bold">{slot.time}</div>
-                            <div className={`text-[10px] uppercase tracking-tighter ${isSelected ? 'text-on-primary/80' : slot.is_full ? 'text-error' : 'text-primary'}`}>
-                              {isSelected ? 'Terpilih' : slot.is_full ? 'Sudah Penuh' : `${slot.available_barbers} Kapster`}
+                            <div className={`text-[10px] uppercase tracking-tighter ${isSelected ? 'text-on-primary/80' : (slot.is_full || isPastTime) ? 'text-error' : 'text-primary'}`}>
+                              {isSelected ? 'Terpilih' : isPastTime ? 'Sudah Lewat' : slot.is_full ? 'Sudah Penuh' : `${slot.available_barbers} Kapster`}
                             </div>
                           </button>
                         )
@@ -363,7 +456,7 @@ const BookingPage = () => {
                         className={`min-w-[180px] flex-shrink-0 bg-surface-container-low border-2 rounded-lg p-4 cursor-pointer transition-all ${selectedBarber === b.id ? 'border-primary bg-primary/5' : 'border-transparent hover:border-outline-variant/50'}`}
                       >
                         <div className="relative mb-4">
-                          <img alt={b.name} className="w-full h-32 object-cover rounded-md" src={b.image || 'https://lh3.googleusercontent.com/aida-public/AB6AXuD3nNqhizkaPi6M2lJfKDItfXGT973LcOxg6UC4QegYjRzRH2HiqmZ3wZ7rTEyvBeE8QS6cLMqOIpqXOMXVRPbB-dbUwjS1-g3dh8p1DgXQ_H_ic1DxlZS4l1IrQSpSM70vapeU06K-y2Y3amZj4cF6ViIGMgqX-ktywmpcRycdXxmRFo33dDd5nXWqeIK58Yw1bABTlMZOLz4CLrTlu7CxpRNlbSV3vCGaEq9xHkVxcg6RsF8aoc5y8oXDRmZpxNV9VP0n66GA4dw'} />
+                          <img alt={b.name} className="w-full h-32 object-cover rounded-md" src={getImageUrl(b.image) || 'https://lh3.googleusercontent.com/aida-public/AB6AXuD3nNqhizkaPi6M2lJfKDItfXGT973LcOxg6UC4QegYjRzRH2HiqmZ3wZ7rTEyvBeE8QS6cLMqOIpqXOMXVRPbB-dbUwjS1-g3dh8p1DgXQ_H_ic1DxlZS4l1IrQSpSM70vapeU06K-y2Y3amZj4cF6ViIGMgqX-ktywmpcRycdXxmRFo33dDd5nXWqeIK58Yw1bABTlMZOLz4CLrTlu7CxpRNlbSV3vCGaEq9xHkVxcg6RsF8aoc5y8oXDRmZpxNV9VP0n66GA4dw'} />
                           {selectedBarber === b.id && (
                             <div className="absolute top-2 right-2 bg-primary text-on-primary rounded-full p-1 shadow-lg">
                               <span className="material-symbols-outlined text-sm">check</span>
@@ -385,6 +478,71 @@ const BookingPage = () => {
               )}
             </section>
 
+            {/* Section 4: Promo & Diskon (Hanya Member) */}
+            {token && campaigns.length > 0 && (
+              <section className={selectedTime ? 'opacity-100' : 'opacity-40 pointer-events-none transition-opacity duration-500'}>
+                <div className="flex items-center gap-3 mb-6">
+                  <span className="text-primary font-headline text-2xl italic">04.</span>
+                  <h2 className="font-headline text-2xl font-bold tracking-tight">Promo & Diskon</h2>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div
+                    onClick={() => setSelectedCampaign(null)}
+                    className={`bg-surface-container-low p-6 rounded-lg border-l-4 transition-all cursor-pointer group ${selectedCampaign === null ? 'border-primary bg-primary/5' : 'border-primary/30 hover:border-primary'}`}
+                  >
+                    <h3 className="font-headline text-xl font-bold group-hover:text-primary transition-colors">Tanpa Promo</h3>
+                    <p className="text-sm text-secondary leading-relaxed mt-2">
+                      Lanjutkan tanpa menggunakan promo atau diskon.
+                    </p>
+                  </div>
+
+                  {campaigns.map((camp) => {
+                    const isPointsBased = camp.discount_type === 'points_based';
+                    const hasEnoughPoints = user && user.points >= camp.required_points;
+                    const isApplicableService = camp.discount_type !== 'specific_service' || camp.service_id === selectedService;
+                    const isEligible = (!isPointsBased || hasEnoughPoints) && isApplicableService;
+
+                    return (
+                      <div
+                        key={camp.id}
+                        onClick={() => isEligible && setSelectedCampaign(camp.id)}
+                        className={`bg-surface-container-low p-6 rounded-lg border-l-4 transition-all group ${
+                          !isEligible ? 'opacity-50 cursor-not-allowed border-outline-variant' :
+                          selectedCampaign === camp.id ? 'border-primary bg-primary/5 cursor-pointer' : 'border-primary/30 hover:border-primary cursor-pointer'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start mb-4">
+                          {camp.image ? (
+                            <img src={getImageUrl(camp.image)} alt={camp.title} className="w-12 h-12 object-cover rounded-md" />
+                          ) : (
+                            <span className="material-symbols-outlined text-primary text-3xl">loyalty</span>
+                          )}
+                          <span className="text-primary font-bold text-sm bg-primary/10 px-2 py-1 rounded">
+                            {formatRupiah(camp.discount_amount)}
+                          </span>
+                        </div>
+                        <h3 className="font-headline text-xl font-bold mb-2 group-hover:text-primary transition-colors">{camp.title}</h3>
+                        <p className="text-sm text-secondary leading-relaxed line-clamp-2">
+                          {camp.description}
+                        </p>
+                        {isPointsBased && (
+                          <div className={`mt-3 text-xs font-bold ${hasEnoughPoints ? 'text-primary' : 'text-error'}`}>
+                            Butuh: {camp.required_points} Poin (Poin Anda: {user?.points || 0})
+                          </div>
+                        )}
+                        {!isApplicableService && (
+                          <div className="mt-3 text-xs font-bold text-error">
+                            Tidak berlaku untuk layanan ini
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
           </div>
 
           {/* Right: Summary */}
@@ -398,6 +556,24 @@ const BookingPage = () => {
                   <div className="font-bold text-lg">{service?.name || 'Belum dipilih'}</div>
                   <div className="text-primary font-bold mt-1">{service ? formatRupiah(service.price) : '-'}</div>
                 </div>
+
+                {selectedAddons.length > 0 && (
+                  <div>
+                    <div className="text-[10px] text-secondary uppercase tracking-widest mb-1">Add-Ons</div>
+                    <ul className="space-y-1">
+                      {selectedAddons.map(id => {
+                        const addon = services.find(s => s.id === id);
+                        if (!addon) return null;
+                        return (
+                          <li key={id} className="flex justify-between text-sm font-semibold">
+                            <span>+ {addon.name}</span>
+                            <span className="text-primary">{formatRupiah(addon.price)}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
                 
                 <div>
                   <div className="text-[10px] text-secondary uppercase tracking-widest mb-1">Waktu Kedatangan</div>
@@ -425,9 +601,27 @@ const BookingPage = () => {
               </div>
 
               <div className="border-t border-white/10 pt-6 mb-8">
+                {selectedCampaign && (
+                  <div className="flex justify-between items-end mb-2 text-primary">
+                    <div className="font-bold">Diskon Promo</div>
+                    <div className="font-bold">- {formatRupiah(campaigns.find(c => c.id === selectedCampaign)?.discount_amount || 0)}</div>
+                  </div>
+                )}
                 <div className="flex justify-between items-end">
-                  <div className="text-secondary font-bold">Total Estimaasi</div>
-                  <div className="font-headline text-3xl font-bold text-white">{service ? formatRupiah(service.price) : 'Rp 0'}</div>
+                  <div className="text-secondary font-bold">Total Estimasi</div>
+                  <div className="font-headline text-3xl font-bold text-white">
+                    {(() => {
+                      const mainPrice = service ? Number(service.price) : 0;
+                      const addonsPrice = selectedAddons.reduce((sum, id) => {
+                        const addon = services.find(s => s.id === id);
+                        return sum + (addon ? Number(addon.price) : 0);
+                      }, 0);
+                      const discount = selectedCampaign ? Number(campaigns.find(c => c.id === selectedCampaign)?.discount_amount || 0) : 0;
+                      // Diskon hanya memotong harga main service
+                      const discountedMain = Math.max(0, mainPrice - discount);
+                      return formatRupiah(discountedMain + addonsPrice);
+                    })()}
+                  </div>
                 </div>
               </div>
 
@@ -435,45 +629,26 @@ const BookingPage = () => {
               <button
                 disabled={!selectedService || !selectedTime}
                 onClick={() => {
+                  const mainPrice = service ? Number(service.price) : 0;
+                  const addonsPrice = selectedAddons.reduce((sum, id) => {
+                    const addon = services.find(s => s.id === id);
+                    return sum + (addon ? Number(addon.price) : 0);
+                  }, 0);
+                  const discount = selectedCampaign ? Number(campaigns.find(c => c.id === selectedCampaign)?.discount_amount || 0) : 0;
+                  const discountedMain = Math.max(0, mainPrice - discount);
+                  const total = discountedMain + addonsPrice;
+
                   const data = {
                     serviceId: selectedService,
+                    addonIds: selectedAddons,
                     barberId: selectedBarber,
                     date: selectedDate.toLocaleDateString('en-CA'),
                     time: selectedTime,
-                    total: service ? service.price : 0
+                    total: total,
+                    campaign_id: selectedCampaign
                   };
                   localStorage.setItem('booking_data', JSON.stringify(data));
-                  
-                  if (!token) {
-                    navigate('/konfirmasi-identitas');
-                  } else {
-                    // Langsung panggil API jika sudah login
-                    const submitBooking = async () => {
-                      try {
-                        const res = await axios.post('http://localhost:8000/api/member/bookings', {
-                          booking_date: data.date,
-                          booking_time: data.time,
-                          barber_id: data.barberId,
-                          service_id: data.serviceId
-                        }, {
-                          headers: { Authorization: `Bearer ${token}` }
-                        });
-                        localStorage.removeItem('booking_data');
-                        localStorage.setItem('last_booking', JSON.stringify(res.data.data));
-                        navigate('/setelah-booking');
-                      } catch (err: any) {
-                        if (err.response?.status === 401 || err.response?.data?.message === 'Unauthenticated.') {
-                          localStorage.removeItem('auth_token');
-                          localStorage.removeItem('user');
-                          alert('Sesi Anda telah berakhir. Silakan isi data Guest atau Login kembali.');
-                          navigate('/login');
-                        } else {
-                          alert(err.response?.data?.message || 'Terjadi kesalahan saat memproses booking.');
-                        }
-                      }
-                    };
-                    submitBooking();
-                  }
+                  navigate('/konfirmasi-identitas');
                 }}
                 className="w-full bg-primary py-4 rounded-lg text-on-primary font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-[0_0_20px_rgba(197,160,40,0.2)] disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
               >

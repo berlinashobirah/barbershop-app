@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import LoadingScreen from '../../components/LoadingScreen'
+import AlertModal from '../../components/AlertModal'
 
 const API_BASE = 'http://localhost:8000/api'
 
@@ -80,6 +82,9 @@ export default function AdminJadwalPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [updatingBarberId, setUpdatingBarberId] = useState<number | null>(null)
+  const [alertConfig, setAlertConfig] = useState({ isOpen: false, message: '', type: 'info' as 'success'|'error'|'info' })
+
+  const closeAlert = () => setAlertConfig(prev => ({ ...prev, isOpen: false }))
 
   const getToken = () => localStorage.getItem('auth_token')
 
@@ -140,7 +145,7 @@ export default function AdminJadwalPage() {
         }
       })
     } catch (e) {
-      alert('Gagal mengupdate status kapster.')
+      setAlertConfig({ isOpen: true, message: 'Gagal mengupdate status kapster.', type: 'error' })
     } finally {
       setUpdatingBarberId(null)
     }
@@ -152,6 +157,7 @@ export default function AdminJadwalPage() {
 
   return (
     <div className="pt-6 p-8 min-h-screen bg-surface">
+      {loading && <LoadingScreen />}
       {/* Header */}
       <div className="flex justify-between items-end mb-10">
         <div>
@@ -493,6 +499,7 @@ export default function AdminJadwalPage() {
           <p className="mt-2 text-xs text-secondary italic">Terdaftar di database</p>
         </div>
       </div>
+      <AlertModal isOpen={alertConfig.isOpen} message={alertConfig.message} type={alertConfig.type} onClose={closeAlert} />
     </div>
   )
 }

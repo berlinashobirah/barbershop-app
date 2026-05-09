@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import LoadingScreen from '../../components/LoadingScreen';
 
 interface MemberData {
   id: number;
@@ -8,6 +9,7 @@ interface MemberData {
   points: number;
   total_visits: number;
   created_at: string;
+  profile_photo?: string | null;
 }
 
 interface SummaryData {
@@ -20,6 +22,8 @@ const AdminMemberPage = () => {
   const [summary, setSummary] = useState<SummaryData>({ total_members: 0, today_visits: 0 });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     fetchMembers();
@@ -56,8 +60,16 @@ const AdminMemberPage = () => {
     (m.phone && m.phone.includes(search))
   );
 
+  const totalPages = Math.ceil(filteredMembers.length / itemsPerPage);
+  const currentMembers = filteredMembers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
   return (
     <div className="pt-6 p-8 min-h-screen bg-surface">
+      {loading && <LoadingScreen />}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8">
         <div>
           <h1 className="text-4xl font-headline font-bold text-on-surface mb-2">Kelola Member</h1>
@@ -106,38 +118,41 @@ const AdminMemberPage = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-surface-container-high/50 border-b border-outline-variant/5">
-                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Member Name</th>
-                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Contact Info</th>
-                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant text-center">Total Visits</th>
-                <th className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant text-center">Loyalty Points</th>
+                <th className="p-4 font-headline italic text-on-surface-variant font-medium">Profile</th>
+                <th className="p-4 font-headline italic text-on-surface-variant font-medium">Nama Member</th>
+                <th className="p-4 font-headline italic text-on-surface-variant font-medium">Kontak</th>
+                <th className="p-4 font-headline italic text-on-surface-variant font-medium">Bergabung</th>
+                <th className="p-4 font-headline italic text-on-surface-variant font-medium text-center">Poin</th>
+                <th className="p-4 font-headline italic text-on-surface-variant font-medium text-center">Total Kunjungan</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-outline-variant/5">
+            <tbody className="divide-y divide-outline-variant/10">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-secondary">
+                  <td colSpan={6} className="px-6 py-12 text-center text-secondary">
                     Memuat data member...
                   </td>
                 </tr>
-              ) : filteredMembers.length === 0 ? (
+              ) : currentMembers.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-secondary">
+                  <td colSpan={6} className="p-8 text-center text-secondary italic">
                     Tidak ada member ditemukan.
                   </td>
                 </tr>
               ) : (
-                filteredMembers.map((member) => (
+                currentMembers.map((member) => (
                   <tr key={member.id} className="hover:bg-surface-container-high transition-colors group">
-                    <td className="px-6 py-6">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-primary/20 bg-surface-container-highest flex items-center justify-center text-primary font-bold">
-                          {member.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-headline font-bold text-sm text-on-surface group-hover:text-primary transition-colors">{member.name}</p>
-                          <p className="text-[11px] text-on-surface-variant/60">Bergabung: {new Date(member.created_at).toLocaleDateString('id-ID')}</p>
-                        </div>
+                    <td className="px-6 py-6 text-center">
+                      <div className="w-10 h-10 rounded-full mx-auto overflow-hidden shrink-0 border border-primary/20 bg-surface-container-highest flex items-center justify-center text-primary font-bold">
+                        {member.profile_photo ? (
+                          <img src={`http://localhost:8000${member.profile_photo}`} alt={member.name} className="w-full h-full object-cover" />
+                        ) : (
+                          member.name.charAt(0).toUpperCase()
+                        )}
                       </div>
+                    </td>
+                    <td className="px-6 py-6 font-body font-bold text-on-surface">
+                      <p className="font-headline font-bold text-sm text-on-surface group-hover:text-primary transition-colors">{member.name}</p>
                     </td>
                     <td className="px-6 py-6">
                       <div className="space-y-1">
@@ -145,16 +160,19 @@ const AdminMemberPage = () => {
                         <p className="text-xs text-on-surface-variant/50">{member.phone}</p>
                       </div>
                     </td>
-                    <td className="px-6 py-6 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <span className="text-sm font-bold text-on-surface">{member.total_visits}</span>
-                        <span className="text-[10px] text-on-surface-variant/40 italic">kunjungan</span>
-                      </div>
+                    <td className="px-6 py-6">
+                      <p className="text-[11px] text-on-surface-variant/60">{new Date(member.created_at).toLocaleDateString('id-ID')}</p>
                     </td>
                     <td className="px-6 py-6 text-center">
                       <span className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold tracking-widest">
                         {member.points.toLocaleString('id-ID')} PTS
                       </span>
+                    </td>
+                    <td className="px-6 py-6 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <span className="text-sm font-bold text-on-surface">{member.total_visits}</span>
+                        <span className="text-[10px] text-on-surface-variant/40 italic">kunjungan</span>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -163,9 +181,34 @@ const AdminMemberPage = () => {
           </table>
         </div>
         
-        {!loading && filteredMembers.length > 0 && (
+        {!loading && (
           <div className="p-6 bg-surface-container-high/30 border-t border-outline-variant/5 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-xs text-on-surface-variant">Menampilkan {filteredMembers.length} member</p>
+            <p className="text-xs text-on-surface-variant">
+              Menampilkan {currentMembers.length} dari {filteredMembers.length} member
+            </p>
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-secondary hover:text-white hover:bg-surface-container-highest disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                >
+                  <span className="material-symbols-outlined text-sm">chevron_left</span>
+                </button>
+                <span className="text-xs font-bold text-primary px-2">
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-secondary hover:text-white hover:bg-surface-container-highest disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                >
+                  <span className="material-symbols-outlined text-sm">chevron_right</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
