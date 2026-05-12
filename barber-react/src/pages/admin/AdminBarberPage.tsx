@@ -11,8 +11,8 @@ interface Barber {
   image: string | null;
 }
 
-const API_BASE = 'http://localhost:8000/api';
-const API_URL = 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_BASE_URL;
 
 const AdminBarberPage = () => {
   const [barbers, setBarbers] = useState<Barber[]>([]);
@@ -52,7 +52,7 @@ const AdminBarberPage = () => {
       setBarbers(res.data.data);
     } catch (error) {
       console.error('Failed to fetch barbers', error);
-      setAlertConfig({ isOpen: true, message: 'Gagal mengambil data kapster.', type: 'error' });
+      setAlertConfig({ isOpen: true, message: 'Failed to fetch barber data.', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -94,7 +94,7 @@ const AdminBarberPage = () => {
   const handleDelete = (id: number) => {
     setAlertConfig({
       isOpen: true,
-      message: 'Yakin ingin menghapus kapster ini?',
+      message: 'Are you sure you want to delete this barber?',
       type: 'info',
       onConfirm: async () => {
         try {
@@ -103,10 +103,10 @@ const AdminBarberPage = () => {
           });
           fetchBarbers();
           if (editId === id) handleResetForm();
-          setAlertConfig({ isOpen: true, message: 'Kapster berhasil dihapus.', type: 'success' });
+          setAlertConfig({ isOpen: true, message: 'Barber successfully deleted.', type: 'success' });
         } catch (error) {
           console.error(error);
-          setAlertConfig({ isOpen: true, message: 'Gagal menghapus kapster.', type: 'error' });
+          setAlertConfig({ isOpen: true, message: 'Failed to delete barber.', type: 'error' });
         }
       }
     });
@@ -142,7 +142,7 @@ const AdminBarberPage = () => {
             'Content-Type': 'multipart/form-data'
           }
         });
-        setAlertConfig({ isOpen: true, message: 'Data Kapster berhasil diperbarui!', type: 'success' });
+        setAlertConfig({ isOpen: true, message: 'Barber data successfully updated!', type: 'success' });
       } else {
         await axios.post(`${API_BASE}/admin/barbers`, submitData, {
           headers: { 
@@ -150,14 +150,14 @@ const AdminBarberPage = () => {
             'Content-Type': 'multipart/form-data'
           }
         });
-        setAlertConfig({ isOpen: true, message: 'Kapster baru berhasil ditambahkan!', type: 'success' });
+        setAlertConfig({ isOpen: true, message: 'New barber successfully added!', type: 'success' });
       }
       
       fetchBarbers();
       handleResetForm();
     } catch (error: any) {
       console.error(error);
-      setAlertConfig({ isOpen: true, message: error.response?.data?.message || 'Terjadi kesalahan saat menyimpan.', type: 'error' });
+      setAlertConfig({ isOpen: true, message: error.response?.data?.message || 'An error occurred while saving.', type: 'error' });
     } finally {
       setSubmitting(false);
     }
@@ -166,11 +166,11 @@ const AdminBarberPage = () => {
   const getStatusBadge = (status: string) => {
     switch(status) {
       case 'Available':
-        return <span className="bg-green-500/10 text-green-500 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest border border-green-500/20">Tersedia</span>;
+        return <span className="bg-green-500/10 text-green-500 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest border border-green-500/20">Available</span>;
       case 'Busy':
-        return <span className="bg-primary/10 text-primary text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest border border-primary/20">Sibuk</span>;
+        return <span className="bg-primary/10 text-primary text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest border border-primary/20">Busy</span>;
       case 'Absent':
-        return <span className="bg-error/10 text-error text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest border border-error/20">Tidak Masuk</span>;
+        return <span className="bg-error/10 text-error text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest border border-error/20">Logged Out</span>;
       default:
         return <span className="bg-surface-container-highest text-secondary text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">{status}</span>;
     }
@@ -185,8 +185,8 @@ const AdminBarberPage = () => {
       {/* Header Section */}
       <section className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="max-w-2xl">
-          <h2 className="text-4xl font-bold text-on-surface mb-2 tracking-tight font-headline">Kelola Kapster</h2>
-          <p className="text-secondary font-body">Manajemen tim artis The Modern Artisan. Tambahkan staf baru, perbarui spesialisasi, atau atur status kehadiran mereka.</p>
+          <h2 className="text-4xl font-bold text-on-surface mb-2 tracking-tight font-headline">Manage Barbers</h2>
+          <p className="text-secondary font-body">Management of The Modern Artisan artist team. Add new staff, update specializations, or set their attendance status.</p>
         </div>
       </section>
 
@@ -200,7 +200,7 @@ const AdminBarberPage = () => {
              </div>
           ) : currentBarbers.length === 0 ? (
             <div className="bg-surface-container-low p-10 rounded-xl text-center text-secondary border border-outline-variant/20">
-              Belum ada kapster yang terdaftar di halaman ini.
+              No barbers available on this page.
             </div>
           ) : (
             <>
@@ -239,7 +239,7 @@ const AdminBarberPage = () => {
               {totalPages > 1 && (
                 <div className="mt-6 p-4 bg-surface-container-lowest/50 rounded-xl flex justify-between items-center border border-outline-variant/10">
                   <p className="text-xs text-secondary">
-                    Menampilkan {currentBarbers.length} dari {barbers.length} kapster
+                    Showing {currentBarbers.length} of {barbers.length} barbers
                   </p>
                   <div className="flex items-center gap-2">
                     <button
@@ -271,12 +271,12 @@ const AdminBarberPage = () => {
           <div className="bg-surface-container-low rounded-xl p-8 sticky top-28 border border-outline-variant/20">
             <h3 className="text-2xl font-bold mb-6 text-on-surface flex items-center gap-3 font-headline">
               <span className="w-1 h-8 bg-primary rounded-full"></span>
-              {isEditing ? 'Edit Kapster' : 'Add New Barber'}
+              {isEditing ? 'Edit Barber' : 'Add New Barber'}
             </h3>
             
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-outline">Nama Lengkap</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-outline">Full Name</label>
                 <input 
                   required
                   className="w-full bg-surface-container-highest border-none border-b border-outline-variant text-on-surface rounded-md focus:ring-1 focus:ring-primary px-4 py-3 outline-none transition-all" 
@@ -287,7 +287,7 @@ const AdminBarberPage = () => {
               </div>
               
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-outline">Spesialisasi</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-outline">Specialization</label>
                 <input 
                   className="w-full bg-surface-container-highest border-none border-b border-outline-variant text-on-surface rounded-md focus:ring-1 focus:ring-primary px-4 py-3 outline-none transition-all" 
                   type="text" 
@@ -298,20 +298,20 @@ const AdminBarberPage = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-outline">Status Awal</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-outline">Initial Status</label>
                 <select 
                   className="w-full bg-surface-container-highest border-none border-b border-outline-variant text-on-surface rounded-md focus:ring-1 focus:ring-primary px-4 py-3 outline-none appearance-none"
                   value={formData.status}
                   onChange={e => setFormData({...formData, status: e.target.value as any})}
                 >
-                  <option value="Available">Tersedia (Available)</option>
-                  <option value="Busy">Sibuk (Busy)</option>
-                  <option value="Absent">Tidak Masuk (Absent)</option>
+                  <option value="Available">Available</option>
+                  <option value="Busy">Busy</option>
+                  <option value="Absent">Logged Out (Absent)</option>
                 </select>
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-outline">Foto Profil</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-outline">Profile Photo</label>
                 <input 
                   type="file" 
                   accept="image/*" 
@@ -344,7 +344,7 @@ const AdminBarberPage = () => {
                     className="flex-1 border border-outline-variant text-secondary font-bold py-3 rounded-md text-xs uppercase tracking-widest hover:bg-surface-container-highest transition-all" 
                     type="button"
                   >
-                    Batal
+                    Cancel
                   </button>
                 )}
                 <button 
@@ -352,7 +352,7 @@ const AdminBarberPage = () => {
                   className="flex-1 bg-primary text-on-primary font-bold py-3 rounded-md text-xs uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-50" 
                   type="submit"
                 >
-                  {submitting ? 'Menyimpan...' : 'Simpan Kapster'}
+                  {submitting ? 'Saving...' : 'Save Barber'}
                 </button>
               </div>
             </form>

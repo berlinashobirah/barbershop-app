@@ -9,5 +9,8 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 // Auto-expire booking yang tanggalnya sudah lewat dan belum dibayar
-// Berjalan setiap hari tengah malam (00:00)
 Schedule::command('bookings:expire')->dailyAt('00:00');
+
+// Auto-cancel booking terlambat 1 jam & Pengingat 1 jam sebelumnya
+Schedule::command('booking:auto-cancel')->everyMinute();
+

@@ -110,22 +110,12 @@ const BarberModal = ({ isOpen, onClose, barbers }: BarberModalProps) => {
                 <div className="mt-4 p-3">
                   <h3 className="text-lg font-bold font-headline text-primary tracking-tight">{barber.name}</h3>
                   <p className="text-on-surface-variant text-[11px] mt-1 leading-tight">{barber.specialty || 'Master Barber'}</p>
-                  
-                  <div className="mt-4 flex justify-between items-center">
-                    {barber.status === 'Busy' ? (
-                      <span className="text-[10px] text-on-surface-variant italic">Next: 30 mins</span>
-                    ) : (
-                      <button className="text-[10px] font-bold uppercase tracking-widest text-on-surface hover:text-primary transition-colors flex items-center gap-1">
-                        Portfolio <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
-                      </button>
-                    )}
-                  </div>
                 </div>
               </div>
             ))}
             {filteredBarbers.length === 0 && (
               <div className="col-span-full py-12 text-center text-secondary">
-                Tidak ada kapster dengan status {filter} saat ini.
+                No barbers available dengan status {filter} saat ini.
               </div>
             )}
           </div>

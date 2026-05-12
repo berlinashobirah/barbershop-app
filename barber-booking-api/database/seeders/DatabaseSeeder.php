@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             BarberSeeder::class,
             ServiceSeeder::class,
+            CampaignSeeder::class,
         ]);
     }
 }

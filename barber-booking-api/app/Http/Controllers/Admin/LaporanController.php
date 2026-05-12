@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -12,22 +13,27 @@ class LaporanController extends Controller
     private function checkAdmin(Request $request)
     {
         if ($request->user()->role !== 'admin') {
-            return response()->json(['message' => 'Akses ditolak. Anda bukan Admin.'], 403);
+            return response()->json(['message' => 'Access denied. You are not an Admin.'], 403);
         }
         return null;
     }
 
-    /** Apply optional month filter to a query. No month = all time. */
-    private function applyMonth($query, ?string $month, string $dateCol = 'booking_date')
+    /** Apply date filters: Supports explicit range or legacy monthly string. */
+    private function applyDateRange(Request $request, $query, string $dateCol = 'booking_date')
     {
-        if ($month) {
+        $start = $request->query('start_date');
+        $end   = $request->query('end_date');
+        $month = $request->query('month');
+
+        if ($start && $end) {
+            $query->whereBetween($dateCol, [$start, $end]);
+        } elseif ($month) {
             $parts = explode('-', $month);
             if (count($parts) === 2) {
                 $query->whereYear($dateCol, $parts[0])
                       ->whereMonth($dateCol, $parts[1]);
             }
         }
-        // If no month given → no date restriction (show all time)
         return $query;
     }
 
@@ -39,15 +45,13 @@ class LaporanController extends Controller
         $denied = $this->checkAdmin($request);
         if ($denied) return $denied;
 
-        $month = $request->query('month');
-
         $query = Booking::query()->where('status', '!=', 'cancelled');
-        $this->applyMonth($query, $month);
+        $this->applyDateRange($request, $query);
 
         $totalBooking = (clone $query)->count();
         $completed    = (clone $query)->where('status', 'completed')->count();
         $revenue      = (clone $query)->where('status', 'completed')->sum('total_amount');
-        $totalMembers = \App\Models\User::where('role', 'member')->count();
+        $totalMembers = User::where('role', 'member')->count();
 
         return response()->json([
             'status' => 'success',
@@ -70,52 +74,49 @@ class LaporanController extends Controller
         $denied = $this->checkAdmin($request);
         if ($denied) return $denied;
 
+        $start = $request->query('start_date');
+        $end   = $request->query('end_date');
         $month = $request->query('month');
 
-        if ($month) {
-            // Daily chart for the selected month
-            $parts = explode('-', $month);
-            $year  = (int)($parts[0] ?? now()->year);
-            $mon   = (int)($parts[1] ?? now()->month);
+        // CASE 1: Explicit Date Range OR Month specified -> Plot DAILY aggregates
+        if (($start && $end) || $month) {
+            $query = DB::table('bookings')
+                ->selectRaw("booking_date, SUM(total_amount) AS revenue, COUNT(*) AS bookings")
+                ->where('status', 'completed');
 
-            $rows = DB::table('bookings')
-                ->selectRaw('EXTRACT(DAY FROM booking_date)::int AS day, SUM(total_amount) AS revenue, COUNT(*) AS bookings')
-                ->whereYear('booking_date', $year)
-                ->whereMonth('booking_date', $mon)
-                ->where('status', 'completed')
-                ->groupByRaw('EXTRACT(DAY FROM booking_date)')
-                ->orderByRaw('EXTRACT(DAY FROM booking_date)')
-                ->get();
-
-            $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $mon, $year);
-            $chart = [];
-            for ($d = 1; $d <= $daysInMonth; $d++) {
-                $chart[$d] = ['day' => $d, 'label' => (string)$d, 'revenue' => 0, 'bookings' => 0];
-            }
-            foreach ($rows as $row) {
-                $chart[(int)$row->day] = [
-                    'day'      => (int) $row->day,
-                    'label'    => (string)(int) $row->day,
-                    'revenue'  => (int) $row->revenue,
-                    'bookings' => (int) $row->bookings,
-                ];
+            if ($start && $end) {
+                $query->whereBetween('booking_date', [$start, $end]);
+            } else {
+                $parts = explode('-', $month);
+                $query->whereYear('booking_date', $parts[0])->whereMonth('booking_date', $parts[1]);
             }
 
-            return response()->json(['status' => 'success', 'data' => array_values($chart), 'mode' => 'daily']);
-        } else {
-            // Monthly chart for all time (group by year-month)
+            $rows = $query->groupBy('booking_date')->orderBy('booking_date')->get();
+
+            $chart = $rows->map(fn($r) => [
+                'day'      => $r->booking_date,
+                'label'    => date('d M', strtotime($r->booking_date)),
+                'revenue'  => (int)$r->revenue,
+                'bookings' => (int)$r->bookings,
+            ]);
+
+            return response()->json(['status' => 'success', 'data' => $chart, 'mode' => 'daily']);
+        } 
+        
+        // CASE 2: Default All-Time -> Plot MONTHLY aggregates
+        else {
             $rows = DB::table('bookings')
                 ->selectRaw(
-                    "EXTRACT(YEAR FROM booking_date)::int AS yr, " .
-                    "EXTRACT(MONTH FROM booking_date)::int AS mon, " .
+                    "YEAR(booking_date) AS yr, " .
+                    "MONTH(booking_date) AS mon, " .
                     "SUM(total_amount) AS revenue, COUNT(*) AS bookings"
                 )
                 ->where('status', 'completed')
-                ->groupByRaw('EXTRACT(YEAR FROM booking_date), EXTRACT(MONTH FROM booking_date)')
-                ->orderByRaw('EXTRACT(YEAR FROM booking_date), EXTRACT(MONTH FROM booking_date)')
+                ->groupByRaw('YEAR(booking_date), MONTH(booking_date)')
+                ->orderByRaw('YEAR(booking_date) ASC, MONTH(booking_date) ASC')
                 ->get();
 
-            $monthNames = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+            $monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
             $chart = $rows->map(fn($r) => [
                 'day'      => (int)$r->mon,
                 'label'    => $monthNames[(int)$r->mon - 1] . ' ' . $r->yr,
@@ -135,8 +136,6 @@ class LaporanController extends Controller
         $denied = $this->checkAdmin($request);
         if ($denied) return $denied;
 
-        $month = $request->query('month');
-
         $query = DB::table('booking_details')
             ->join('services', 'booking_details.service_id', '=', 'services.id')
             ->join('bookings', 'booking_details.booking_id', '=', 'bookings.id')
@@ -148,13 +147,7 @@ class LaporanController extends Controller
                 DB::raw('SUM(booking_details.price_snapshot) AS total_revenue')
             );
 
-        if ($month) {
-            $parts = explode('-', $month);
-            if (count($parts) === 2) {
-                $query->whereYear('bookings.booking_date', $parts[0])
-                      ->whereMonth('bookings.booking_date', $parts[1]);
-            }
-        }
+        $this->applyDateRange($request, $query, 'bookings.booking_date');
 
         $services = $query
             ->groupBy('services.id', 'services.name')
@@ -184,8 +177,6 @@ class LaporanController extends Controller
         $denied = $this->checkAdmin($request);
         if ($denied) return $denied;
 
-        $month = $request->query('month');
-
         $query = DB::table('bookings')
             ->join('barbers', 'bookings.barber_id', '=', 'barbers.id')
             ->where('bookings.status', 'completed')
@@ -197,13 +188,7 @@ class LaporanController extends Controller
                 DB::raw('SUM(bookings.total_amount) AS total_revenue')
             );
 
-        if ($month) {
-            $parts = explode('-', $month);
-            if (count($parts) === 2) {
-                $query->whereYear('bookings.booking_date', $parts[0])
-                      ->whereMonth('bookings.booking_date', $parts[1]);
-            }
-        }
+        $this->applyDateRange($request, $query, 'bookings.booking_date');
 
         $barbers = $query
             ->groupBy('barbers.id', 'barbers.name', 'barbers.image')
@@ -231,27 +216,39 @@ class LaporanController extends Controller
         $denied = $this->checkAdmin($request);
         if ($denied) return $denied;
 
-        $month  = $request->query('month');
         $status = $request->query('status', 'all');
 
         $query = Booking::with(['user', 'barber']);
-
-        if ($month) {
-            $parts = explode('-', $month);
-            if (count($parts) === 2) {
-                $query->whereYear('booking_date', $parts[0])
-                      ->whereMonth('booking_date', $parts[1]);
-            }
-        }
+        $this->applyDateRange($request, $query);
 
         if ($status !== 'all') {
             $query->where('status', $status);
         }
 
         $query->orderBy('booking_date', 'desc')->orderBy('booking_time', 'desc');
-        $paginated = $query->paginate(15);
+        
+        // Support full non-paginated dump for printing
+        if ($request->query('limit') === 'all') {
+            $results = $query->get();
+            $paginated = (object) [
+                'total' => $results->count(),
+                'currentPage' => 1,
+                'lastPage' => 1,
+                'items' => $results
+            ];
+            $iterableItems = $results;
+        } else {
+            $paged = $query->paginate(15);
+            $paginated = (object) [
+                'total' => $paged->total(),
+                'currentPage' => $paged->currentPage(),
+                'lastPage' => $paged->lastPage(),
+                'items' => collect($paged->items())
+            ];
+            $iterableItems = $paginated->items;
+        }
 
-        $items = collect($paginated->items())->map(function ($booking) {
+        $items = $iterableItems->map(function ($booking) {
             $serviceName = DB::table('booking_details')
                 ->join('services', 'booking_details.service_id', '=', 'services.id')
                 ->where('booking_details.booking_id', $booking->id)
@@ -262,7 +259,7 @@ class LaporanController extends Controller
                 'unique_code'    => $booking->unique_code,
                 'customer_name'  => $booking->guest_name ?? ($booking->user?->name ?? 'N/A'),
                 'customer_type'  => $booking->user_id ? 'Member' : 'Guest',
-                'barber_name'    => $booking->barber?->name ?? 'Belum ditentukan',
+                'barber_name'    => $booking->barber?->name ?? 'Unassigned',
                 'service_name'   => $serviceName,
                 'booking_date'   => $booking->booking_date,
                 'booking_time'   => $booking->booking_time,
@@ -275,9 +272,9 @@ class LaporanController extends Controller
         return response()->json([
             'status'       => 'success',
             'data'         => $items,
-            'total'        => $paginated->total(),
-            'current_page' => $paginated->currentPage(),
-            'last_page'    => $paginated->lastPage(),
+            'total'        => $paginated->total,
+            'current_page' => $paginated->currentPage,
+            'last_page'    => $paginated->lastPage,
         ]);
     }
 }

@@ -11,7 +11,7 @@ class DashboardController extends Controller
     public function stats(Request $request)
     {
         if ($request->user()->role !== 'admin') {
-            return response()->json(['message' => 'Akses ditolak. Anda bukan Admin.'], 403);
+            return response()->json(['message' => 'Access denied. You are not an Admin.'], 403);
         }
 
         $month = $request->query('month'); // format: YYYY-MM

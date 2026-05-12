@@ -14,12 +14,12 @@ const BarberAvailabilitySection = ({ onOpenBarberModal, barbers }: BarberAvailab
       <div className="container mx-auto px-8">
         <div className="text-center mb-16">
           <span className="text-primary font-label uppercase tracking-widest text-sm mb-4 block">
-            Status Antrean
+            Queue Status
           </span>
-          <h2 className="font-headline text-4xl font-bold mb-4">Ketersediaan Kapster</h2>
+          <h2 className="font-headline text-4xl font-bold mb-4">Barber Availability</h2>
           <div className="h-1 w-16 bg-primary mx-auto mb-6"></div>
           <p className="text-secondary max-w-2xl mx-auto">
-            Pantau ketersediaan seniman rambut kami secara real-time untuk kunjungan yang lebih terencana.
+            Monitor the availability of our hair artists in real-time for better-planned visits.
           </p>
         </div>
         
@@ -65,7 +65,7 @@ const BarberAvailabilitySection = ({ onOpenBarberModal, barbers }: BarberAvailab
             onClick={onOpenBarberModal}
             className="flex items-center gap-2 text-primary hover:text-primary-fixed transition-colors font-bold group"
           >
-            <span>Lihat Semua Kapster</span>
+            <span>View All Barbers</span>
             <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">
               arrow_forward
             </span>

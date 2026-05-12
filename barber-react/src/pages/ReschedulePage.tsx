@@ -47,7 +47,7 @@ const ReschedulePage = () => {
       
       try {
         const dateStr = selectedDate.toLocaleDateString('en-CA');
-        const res = await axios.get(`http://localhost:8000/api/slots/availability?date=${dateStr}`);
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/slots/availability?date=${dateStr}`);
         setAvailableSlots(res.data.data);
       } catch (error) {
         console.error('Error fetching slots:', error);
@@ -63,7 +63,7 @@ const ReschedulePage = () => {
         setSelectedBarber(null);
         try {
           const dateStr = selectedDate.toLocaleDateString('en-CA');
-          const res = await axios.get(`http://localhost:8000/api/barbers/available?date=${dateStr}&time=${selectedTime}`);
+          const res = await axios.get(`${import.meta.env.VITE_API_URL}/barbers/available?date=${dateStr}&time=${selectedTime}`);
           setAvailableBarbers(res.data.data);
         } catch (error) {
           console.error('Error fetching barbers:', error);
@@ -78,17 +78,17 @@ const ReschedulePage = () => {
     setSubmitting(true);
     try {
       const dateStr = selectedDate.toLocaleDateString('en-CA');
-      const res = await axios.post(`http://localhost:8000/api/bookings/${id}/reschedule`, {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/bookings/${id}/reschedule`, {
         booking_date: dateStr,
         booking_time: selectedTime,
         barber_id: selectedBarber
       }, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
-      setAlertConfig({ isOpen: true, message: res.data.message || 'Jadwal berhasil diubah!', type: 'success' });
+      setAlertConfig({ isOpen: true, message: res.data.message || 'Schedule berhasil diubah!', type: 'success' });
       setTimeout(() => navigate('/'), 2000);
     } catch (error: any) {
-      setAlertConfig({ isOpen: true, message: error.response?.data?.message || 'Gagal mengubah jadwal.', type: 'error' });
+      setAlertConfig({ isOpen: true, message: error.response?.data?.message || 'Failed mengubah jadwal.', type: 'error' });
     } finally {
       setSubmitting(false);
     }
@@ -121,7 +121,7 @@ const ReschedulePage = () => {
   const getImageUrl = (path: string | null) => {
     if (!path) return '';
     if (path.startsWith('http')) return path;
-    return `http://localhost:8000${path}`;
+    return `${import.meta.env.VITE_BASE_URL}${path}`;
   };
 
   if (loading || submitting) return <LoadingScreen />;
@@ -135,17 +135,17 @@ const ReschedulePage = () => {
       <main className="pt-32 pb-24 px-6 md:px-12 max-w-4xl mx-auto">
         <header className="mb-12 text-center">
           <h1 className="font-headline text-4xl font-bold text-primary mb-4 tracking-tight">Reschedule Booking</h1>
-          <p className="text-secondary">Kode Booking: <span className="font-bold text-white">{id}</span></p>
-          <p className="text-secondary max-w-lg mx-auto mt-2">Pilih ulang tanggal, waktu, dan kapster. Anda tidak akan dikenakan biaya tambahan.</p>
+          <p className="text-secondary">Booking Code: <span className="font-bold text-white">{id}</span></p>
+          <p className="text-secondary max-w-lg mx-auto mt-2">Select a new date, time, and barber. You will not be charged extra.</p>
         </header>
 
         <div className="space-y-12">
-          {/* Section 1: Tanggal */}
+          {/* Section 1: Date */}
           <section className="bg-surface-container-low p-8 rounded-lg border border-outline-variant/10">
-            <h2 className="font-headline text-2xl font-bold mb-6">1. Pilih Tanggal Baru</h2>
+            <h2 className="font-headline text-2xl font-bold mb-6">1. Select Date Baru</h2>
             <div className="flex justify-between items-center mb-6">
               <h3 className="font-headline text-xl font-bold text-primary">
-                {currentMonth.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+                {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
               </h3>
               <div className="flex gap-2">
                 <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))} className="p-2 border border-outline-variant rounded-md hover:border-primary text-secondary hover:text-primary transition-all">
@@ -157,7 +157,7 @@ const ReschedulePage = () => {
               </div>
             </div>
             <div className="grid grid-cols-7 gap-2 mb-4">
-              {['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map(d => (
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
                 <div key={d} className="text-center text-xs font-bold text-secondary uppercase tracking-widest">{d}</div>
               ))}
             </div>
@@ -180,9 +180,9 @@ const ReschedulePage = () => {
             </div>
           </section>
 
-          {/* Section 2: Waktu */}
+          {/* Section 2: Time */}
           <section className="bg-surface-container-low p-8 rounded-lg border border-outline-variant/10">
-            <h2 className="font-headline text-2xl font-bold mb-6">2. Pilih Jam</h2>
+            <h2 className="font-headline text-2xl font-bold mb-6">2. Select Time</h2>
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
               {availableSlots.map((slot) => {
                 const [hour, minute] = slot.time.split(':').map(Number);
@@ -206,10 +206,10 @@ const ReschedulePage = () => {
             </div>
           </section>
 
-          {/* Section 3: Kapster */}
+          {/* Section 3: Barber */}
           {selectedTime && (
             <section className="bg-surface-container-low p-8 rounded-lg border border-outline-variant/10 animate-fadeIn">
-              <h2 className="font-headline text-2xl font-bold mb-6">3. Pilih Kapster</h2>
+              <h2 className="font-headline text-2xl font-bold mb-6">3. Select Barber</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div
                   onClick={() => setSelectedBarber(null)}
@@ -219,8 +219,8 @@ const ReschedulePage = () => {
                     <span className="material-symbols-outlined text-secondary">shuffle</span>
                   </div>
                   <div>
-                    <h4 className="font-bold">Siapa Saja</h4>
-                    <p className="text-xs text-secondary mt-1">Dipilih otomatis oleh sistem</p>
+                    <h4 className="font-bold">Anyone</h4>
+                    <p className="text-xs text-secondary mt-1">Automatically selected by system</p>
                   </div>
                 </div>
 
@@ -254,13 +254,13 @@ const ReschedulePage = () => {
               className="w-full bg-primary text-on-primary py-4 rounded-md font-bold uppercase tracking-widest disabled:opacity-50 hover:brightness-110 transition-all flex items-center justify-center gap-2"
             >
               <span className="material-symbols-outlined">update</span>
-              Konfirmasi Perubahan
+              Confirmation Perubahan
             </button>
             <button
               onClick={() => navigate(-1)}
               className="w-full mt-4 bg-transparent border border-outline-variant text-secondary py-4 rounded-md font-bold uppercase tracking-widest hover:text-white hover:border-white transition-all flex items-center justify-center gap-2"
             >
-              Batal
+              Cancel
             </button>
           </div>
         </div>

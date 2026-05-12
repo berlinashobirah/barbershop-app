@@ -6,26 +6,27 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Barber;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ScheduleController extends Controller
 {
     public function index(Request $request)
     {
         if ($request->user()->role !== 'admin') {
-            return response()->json(['message' => 'Akses ditolak. Anda bukan Admin.'], 403);
+            return response()->json(['message' => 'Access denied. You are not an Admin.'], 403);
         }
 
-        // Gunakan tanggal hari ini jika tidak dikirim
+        // Gunakan tanggal today jika tidak dikirim
         $date = $request->get('date', now()->toDateString());
 
-        // Semua slot jam operasional
+        // All slot jam operasional
         $allSlots = [
             '09:00', '10:00', '11:00', '12:00', '13:00',
             '14:00', '15:00', '16:00', '17:00', '18:00',
             '19:00', '20:00',
         ];
 
-        // Ambil semua barber dari DB
+        // Ambil semua barber of DB
         $barbers = Barber::all();
 
         // Ambil semua booking pada tanggal tersebut (exclude cancelled & completed)
@@ -41,7 +42,7 @@ class ScheduleController extends Controller
 
             $timeKey = substr($booking->booking_time, 0, 5); // ambil HH:MM
 
-            $serviceName = \Illuminate\Support\Facades\DB::table('booking_details')
+            $serviceName = DB::table('booking_details')
                 ->join('services', 'booking_details.service_id', '=', 'services.id')
                 ->where('booking_details.booking_id', $booking->id)
                 ->value('services.name') ?? '-';
@@ -105,7 +106,7 @@ class ScheduleController extends Controller
         $barber->save();
 
         if ($request->status === 'Absent' && $oldStatus !== 'Absent') {
-            $pendingBookings = \App\Models\Booking::where('barber_id', $barber->id)
+            $pendingBookings = Booking::where('barber_id', $barber->id)
                 ->whereIn('status', ['pending', 'arrived', 'processing'])
                 ->get();
             
@@ -132,13 +133,14 @@ class ScheduleController extends Controller
         if (!$phone) return;
         if (substr($phone, 0, 1) === '0') $phone = '62' . substr($phone, 1);
 
-        $rescheduleLink = "http://localhost:5173/reschedule/" . $booking->unique_code;
+        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+        $rescheduleLink = rtrim($frontendUrl, '/') . "/reschedule/" . $booking->unique_code;
 
-        $message = "Halo *{$name}*!\n\n";
-        $message .= "Mohon maaf, kapster *{$barberName}* yang Anda pilih untuk booking *{$booking->unique_code}* saat ini berhalangan hadir.\n\n";
-        $message .= "Silakan lakukan penjadwalan ulang (Reschedule) atau pilih kapster lain secara GRATIS melalui link berikut:\n\n";
+        $message = "Hello *{$name}*!\n\n";
+        $message .= "We apologize, but our barber *{$barberName}* that you selected for booking *{$booking->unique_code}* is currently unavailable to attend.\n\n";
+        $message .= "Please reschedule your appointment or select another barber for FREE via the following link:\n\n";
         $message .= "{$rescheduleLink}\n\n";
-        $message .= "Terima kasih atas pengertian Anda. 🙏";
+        $message .= "Thank you for your understanding. 🙏";
 
         $fonnteToken = env('FONNTE_TOKEN') ?? config('services.fonnte.token');
         if (!$fonnteToken) return;

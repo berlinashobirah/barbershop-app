@@ -11,7 +11,7 @@ class MasterController extends Controller
     // Fungsi untuk mengambil semua data layanan & harga
     public function getServices()
     {
-        // Mengambil semua data dari tabel services
+        // Mengambil semua data of tabel services
         $services = Service::all();
 
         return response()->json([

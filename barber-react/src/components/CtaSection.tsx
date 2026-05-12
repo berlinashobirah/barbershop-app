@@ -16,11 +16,11 @@ const CtaSection = () => {
       </div>
       <div className="relative z-10 max-w-3xl">
         <h2 className="font-headline text-4xl md:text-5xl font-bold mb-6">
-          Siap Untuk Tampilan Baru?
+          Ready For a New Look?
         </h2>
         <p className="text-secondary text-lg mb-10">
-          Amankan slot Anda sekarang dan rasakan pengalaman potong rambut terbaik
-          di kota ini. Antrean berjalan cepat, namun kualitas tetap utama.
+          Secure your slot now and experience the best haircut
+          in town. The queue moves fast, but quality remains our priority.
         </p>
         <div className="flex flex-col sm:flex-row gap-6 justify-center">
           <div className="bg-surface-container-low p-6 rounded-lg flex items-center gap-4 text-left border border-outline-variant/10">
@@ -29,7 +29,7 @@ const CtaSection = () => {
             </span>
             <div>
               <p className="text-xs uppercase text-secondary font-bold tracking-widest">
-                Jam Operasional
+                Operational Hours
               </p>
               <p className="font-bold">10:00 - 21:00 WIB</p>
             </div>
@@ -38,7 +38,7 @@ const CtaSection = () => {
             onClick={() => navigate('/booking')}
             className="bg-gradient-to-tr from-[#eac249] via-[#ffe08b] to-[#eac249] text-on-primary px-12 py-6 rounded-md font-bold text-xl hover:scale-105 transition-all shadow-lg"
           >
-            Booking Sekarang
+            Book Now
           </button>
         </div>
       </div>

@@ -19,7 +19,7 @@ const TicketTemplate: React.FC<TicketTemplateProps> = ({
       id="ticket-template"
       style={{
         position: 'absolute',
-        top: '-9999px', // Sembunyikan dari layar
+        top: '-9999px', // Sembunyikan of layar
         left: '-9999px',
         width: '900px',
         height: '600px', // Asumsi rasio SVG

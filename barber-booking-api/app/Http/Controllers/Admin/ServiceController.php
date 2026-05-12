@@ -40,7 +40,7 @@ class ServiceController extends Controller
 
         $service = Service::create($validated);
 
-        return response()->json(['message' => 'Layanan berhasil ditambahkan', 'data' => $service], 201);
+        return response()->json(['message' => 'Service berhasil ditambahkan', 'data' => $service], 201);
     }
 
     public function show($id)
@@ -79,7 +79,7 @@ class ServiceController extends Controller
 
         $service->update($validated);
 
-        return response()->json(['message' => 'Layanan berhasil diperbarui', 'data' => $service]);
+        return response()->json(['message' => 'Service berhasil diperbarui', 'data' => $service]);
     }
 
     public function destroy($id)
@@ -93,6 +93,6 @@ class ServiceController extends Controller
 
         $service->delete();
 
-        return response()->json(['message' => 'Layanan berhasil dihapus']);
+        return response()->json(['message' => 'Service berhasil dihapus']);
     }
 }

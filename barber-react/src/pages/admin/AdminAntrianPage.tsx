@@ -4,7 +4,7 @@ import { usePublicSettings } from '../../hooks/usePublicSettings'
 import LoadingScreen from '../../components/LoadingScreen'
 import AlertModal from '../../components/AlertModal'
 
-const API_BASE = 'http://localhost:8000/api'
+const API_BASE = import.meta.env.VITE_API_URL
 
 type BookingStatus = 'pending' | 'arrived' | 'processing' | 'completed' | 'cancelled'
 type FilterType = 'all' | 'pending' | 'arrived' | 'processing' | 'completed' | 'cancelled'
@@ -33,11 +33,11 @@ interface BookingsResponse {
 
 function StatusBadge({ status }: { status: BookingStatus }) {
   const map: Record<string, { label: string; className: string }> = {
-    pending:    { label: 'Menunggu',  className: 'bg-zinc-700 text-zinc-400' },
-    arrived:    { label: 'Hadir',     className: 'bg-blue-500/10 text-blue-400 border border-blue-500/20' },
-    processing: { label: 'Diproses', className: 'bg-amber-500/10 text-amber-500 border border-amber-500/20' },
-    completed:  { label: 'Selesai',  className: 'bg-green-500/10 text-green-400 border border-green-500/20' },
-    cancelled:  { label: 'Batal',    className: 'bg-red-500/10 text-red-400' },
+    pending:    { label: 'Waiting',  className: 'bg-zinc-700 text-zinc-400' },
+    arrived:    { label: 'Arrived',     className: 'bg-blue-500/10 text-blue-400 border border-blue-500/20' },
+    processing: { label: 'Processing', className: 'bg-amber-500/10 text-amber-500 border border-amber-500/20' },
+    completed:  { label: 'Completed',  className: 'bg-green-500/10 text-green-400 border border-green-500/20' },
+    cancelled:  { label: 'Cancel',    className: 'bg-red-500/10 text-red-400' },
   }
   const s = map[status] ?? map.pending
   return (
@@ -61,15 +61,15 @@ function SkeletonRow() {
 }
 
 const FILTERS: { key: FilterType; label: string }[] = [
-  { key: 'all',        label: 'Semua' },
-  { key: 'pending',    label: 'Menunggu' },
-  { key: 'arrived',    label: 'Hadir' },
-  { key: 'processing', label: 'Diproses' },
-  { key: 'completed',  label: 'Selesai' },
-  { key: 'cancelled',  label: 'Dibatalkan' },
+  { key: 'all',        label: 'All' },
+  { key: 'pending',    label: 'Waiting' },
+  { key: 'arrived',    label: 'Arrived' },
+  { key: 'processing', label: 'Processing' },
+  { key: 'completed',  label: 'Completed' },
+  { key: 'cancelled',  label: 'Cancelled' },
 ]
 
-export default function AdminAntrianPage() {
+export default function AdminQueuePage() {
   const navigate = useNavigate()
   const settings = usePublicSettings()
   const [bookings, setBookings] = useState<Booking[]>([])
@@ -82,6 +82,8 @@ export default function AdminAntrianPage() {
   const [page, setPage] = useState(1)
   const [lastPage, setLastPage] = useState(1)
   const [total, setTotal] = useState(0)
+  const [printBookings, setPrintBookings] = useState<Booking[]>([])
+  const [loadingPrint, setLoadingPrint] = useState(false)
   const [alertConfig, setAlertConfig] = useState({ isOpen: false, message: '', type: 'info' as 'success'|'error'|'info' })
 
   const closeAlert = () => setAlertConfig(prev => ({ ...prev, isOpen: false }))
@@ -114,7 +116,7 @@ export default function AdminAntrianPage() {
       setLastPage(json.last_page ?? 1)
       setPage(json.current_page ?? 1)
     } catch {
-      setError('Gagal memuat data antrean dari server.')
+      setError('Failed to load data Booking of server.')
     } finally {
       setLoading(false)
     }
@@ -147,9 +149,35 @@ export default function AdminAntrianPage() {
       if (!res.ok) throw new Error()
       fetchBookings(filter, page, searchQuery, dateFilter)
     } catch {
-      setAlertConfig({ isOpen: true, message: 'Gagal mengupdate status. Coba lagi.', type: 'error' })
+      setAlertConfig({ isOpen: true, message: 'Failed mengupdate status. Coba lagi.', type: 'error' })
     } finally {
       setUpdatingId(null)
+    }
+  }
+
+  const handleExportPDF = async () => {
+    setLoadingPrint(true)
+    try {
+      const params = new URLSearchParams()
+      if (filter !== 'all') params.set('status', filter)
+      if (searchQuery) params.set('search', searchQuery)
+      if (dateFilter) params.set('date', dateFilter)
+      params.set('limit', 'all')
+      
+      const res = await fetch(`${API_BASE}/admin/bookings/all?${params}`, {
+        headers: { Authorization: `Bearer ${getToken()}`, Accept: 'application/json' },
+      })
+      if (!res.ok) throw new Error()
+      const json: BookingsResponse = await res.json()
+      setPrintBookings(json.data ?? [])
+      
+      setTimeout(() => {
+        window.print()
+        setLoadingPrint(false)
+      }, 500)
+    } catch {
+      setAlertConfig({ isOpen: true, message: 'Failed to generate report data.', type: 'error' })
+      setLoadingPrint(false)
     }
   }
 
@@ -167,9 +195,9 @@ export default function AdminAntrianPage() {
       <section className="mb-12">
         <div className="flex items-end justify-between mb-8">
           <div>
-            <h2 className="font-headline text-4xl font-black text-on-surface leading-tight">Kelola Antrean</h2>
+            <h2 className="font-headline text-4xl font-black text-on-surface leading-tight">Manage Bookings</h2>
             <p className="text-zinc-500 font-medium tracking-wide mt-2 italic">
-              Kendali presisi untuk pengalaman pelanggan yang tak terlupakan.
+             Precision control for an unforgettable customer experience.
             </p>
           </div>
         </div>
@@ -179,7 +207,7 @@ export default function AdminAntrianPage() {
           <div className="bg-surface-container-low p-8 rounded-xl relative overflow-hidden group border-l border-[#eac249]/10">
             <div className="relative z-10">
               <span className="material-symbols-outlined text-zinc-600 mb-4 block">groups</span>
-              <h4 className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-1">Total Antrean</h4>
+              <h4 className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-1">Total Bookings</h4>
               <p className="font-headline text-5xl font-black text-on-surface">
                 {loading ? <span className="animate-pulse text-zinc-700">--</span> : String(total).padStart(2, '0')}
               </p>
@@ -192,7 +220,7 @@ export default function AdminAntrianPage() {
           <div className="bg-surface-container-low p-8 rounded-xl relative overflow-hidden group border-l border-[#eac249]/10">
             <div className="relative z-10">
               <span className="material-symbols-outlined text-[#eac249] mb-4 block">pending_actions</span>
-              <h4 className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-1">Sedang Diproses</h4>
+              <h4 className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-1">Processing</h4>
               <p className="font-headline text-5xl font-black text-[#eac249]">
                 {loading ? <span className="animate-pulse text-zinc-700">--</span> : String(stats.processing).padStart(2, '0')}
               </p>
@@ -205,7 +233,7 @@ export default function AdminAntrianPage() {
           <div className="bg-surface-container-low p-8 rounded-xl relative overflow-hidden group border-l border-[#eac249]/10">
             <div className="relative z-10">
               <span className="material-symbols-outlined text-green-500 mb-4 block">task_alt</span>
-              <h4 className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-1">Selesai (Halaman Ini)</h4>
+              <h4 className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-1">Completed (This Page)</h4>
               <p className="font-headline text-5xl font-black text-on-surface">
                 {loading ? <span className="animate-pulse text-zinc-700">--</span> : String(stats.completed).padStart(2, '0')}
               </p>
@@ -253,7 +281,7 @@ export default function AdminAntrianPage() {
               </span>
               <input
                 className="bg-surface-container-high border border-zinc-800 rounded-lg pl-10 pr-4 py-2 w-full md:w-64 text-sm focus:border-[#eac249] focus:ring-1 focus:ring-[#eac249] outline-none transition-all text-white placeholder:text-zinc-500"
-                placeholder="Cari nama atau kode..."
+                placeholder="Search Unique Code or Name..."
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -296,13 +324,13 @@ export default function AdminAntrianPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-zinc-900/40 text-zinc-500 text-[10px] uppercase tracking-[0.2em] font-bold">
-                <th className="px-8 py-5 border-b border-zinc-800/30">No. / Kode</th>
-                <th className="px-8 py-5 border-b border-zinc-800/30">Nama Pelanggan</th>
-                <th className="px-8 py-5 border-b border-zinc-800/30">Layanan</th>
-                <th className="px-8 py-5 border-b border-zinc-800/30">Kapster</th>
-                <th className="px-8 py-5 border-b border-zinc-800/30">Tgl / Jam</th>
+                <th className="px-8 py-5 border-b border-zinc-800/30">No. / Code</th>
+                <th className="px-8 py-5 border-b border-zinc-800/30">Customer Name</th>
+                <th className="px-8 py-5 border-b border-zinc-800/30">Service</th>
+                <th className="px-8 py-5 border-b border-zinc-800/30">Barber</th>
+                <th className="px-8 py-5 border-b border-zinc-800/30">Tgl / Time</th>
                 <th className="px-8 py-5 border-b border-zinc-800/30 text-center">Status</th>
-                <th className="px-8 py-5 border-b border-zinc-800/30 text-right">Aksi</th>
+                <th className="px-8 py-5 border-b border-zinc-800/30 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/20">
@@ -312,7 +340,7 @@ export default function AdminAntrianPage() {
                 <tr>
                   <td colSpan={7} className="px-8 py-20 text-center text-zinc-500 text-sm">
                     <span className="material-symbols-outlined text-5xl block mb-3 text-zinc-700">inbox</span>
-                    Tidak ada data antrean untuk filter "{FILTERS.find((f) => f.key === filter)?.label}".
+                    No ada data Booking untuk filter "{FILTERS.find((f) => f.key === filter)?.label}".
                   </td>
                 </tr>
               ) : (
@@ -361,7 +389,7 @@ export default function AdminAntrianPage() {
                             disabled={updatingId === booking.id}
                             className="border border-blue-500/30 text-blue-400 px-4 py-2 rounded font-bold text-xs uppercase tracking-widest hover:bg-blue-500/10 transition-colors disabled:opacity-50"
                           >
-                            {updatingId === booking.id ? '...' : 'Hadir'}
+                            {updatingId === booking.id ? '...' : 'Arrived'}
                           </button>
                         )}
                         {booking.status === 'arrived' && (
@@ -379,7 +407,7 @@ export default function AdminAntrianPage() {
                             disabled={updatingId === booking.id}
                             className="bg-[#eac249] text-[#3d2f00] px-4 py-2 rounded font-bold text-xs uppercase tracking-widest hover:opacity-90 transition-opacity disabled:opacity-50"
                           >
-                            {updatingId === booking.id ? '...' : 'Selesai'}
+                            {updatingId === booking.id ? '...' : 'Completed'}
                           </button>
                         )}
                         {(booking.status === 'completed' || booking.status === 'cancelled') && (
@@ -397,7 +425,7 @@ export default function AdminAntrianPage() {
         {/* Pagination */}
         <div className="px-8 py-6 flex items-center justify-between bg-zinc-900/20">
           <p className="text-xs text-zinc-500">
-            {loading ? 'Memuat...' : `Menampilkan ${bookings.length} dari ${total} booking`}
+            {loading ? 'Loading...' : `Showing ${bookings.length} of ${total} booking`}
           </p>
           <div className="flex items-center gap-2">
             <button
@@ -440,15 +468,15 @@ export default function AdminAntrianPage() {
       {/* Action Grid */}
       <section className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
         <div 
-          onClick={() => window.print()}
-          className="p-8 bg-zinc-900/40 rounded-xl border border-zinc-800/30 flex items-center justify-between group hover:border-[#eac249]/30 transition-all cursor-pointer"
+          onClick={handleExportPDF}
+          className={`p-8 bg-zinc-900/40 rounded-xl border border-zinc-800/30 flex items-center justify-between group hover:border-[#eac249]/30 transition-all ${loadingPrint ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
         >
           <div>
-            <h3 className="font-headline text-xl font-bold text-white mb-1">Cetak Laporan Harian</h3>
-            <p className="text-xs text-zinc-500 uppercase tracking-widest">Format PDF & CSV</p>
+            <h3 className="font-headline text-xl font-bold text-white mb-1">{loadingPrint ? 'Generating PDF...' : 'Print Daily Reports'}</h3>
+            <p className="text-xs text-zinc-500 uppercase tracking-widest">PDF Format</p>
           </div>
           <div className="bg-surface-container-high p-4 rounded-lg group-hover:bg-[#eac249] group-hover:text-[#3d2f00] transition-all">
-            <span className="material-symbols-outlined">print</span>
+            <span className="material-symbols-outlined">{loadingPrint ? 'hourglass_empty' : 'print'}</span>
           </div>
         </div>
         <div
@@ -456,8 +484,8 @@ export default function AdminAntrianPage() {
           className="p-8 bg-zinc-900/40 rounded-xl border border-zinc-800/30 flex items-center justify-between group hover:border-[#eac249]/30 transition-all cursor-pointer"
         >
           <div>
-            <h3 className="font-headline text-xl font-bold text-white mb-1">Refresh Data Antrean</h3>
-            <p className="text-xs text-zinc-500 uppercase tracking-widest">Sinkronisasi data terbaru dari server</p>
+            <h3 className="font-headline text-xl font-bold text-white mb-1">Refresh Booking Data</h3>
+            <p className="text-xs text-zinc-500 uppercase tracking-widest">Synchronize latest data from server</p>
           </div>
           <div className="bg-surface-container-high p-4 rounded-lg group-hover:bg-[#eac249] group-hover:text-[#3d2f00] transition-all">
             <span className="material-symbols-outlined">sync</span>
@@ -477,17 +505,19 @@ export default function AdminAntrianPage() {
             top: 0 !important;
             left: 0 !important;
             width: 100% !important;
-            background-color: #131313 !important;
-            color: #e5e2e1 !important;
+            background-color: white !important;
+            color: black !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             font-family: 'Manrope', sans-serif !important;
           }
-          #print-laporan table { display: table !important; width: 100% !important; border-collapse: collapse !important; }
+          #print-laporan table { display: table !important; width: 100% !important; border-collapse: collapse !important; border: 1px solid #ddd; }
+          #print-laporan th, #print-laporan td { display: table-cell !important; border: 1px solid #ddd; padding: 8px; }
+          #print-laporan th { background-color: #f3f4f6 !important; font-weight: bold !important; color: black !important; }
+          #print-laporan h1, #print-laporan h2, #print-laporan h3, #print-laporan p, #print-laporan span { color: black !important; }
           #print-laporan thead { display: table-header-group !important; }
           #print-laporan tbody { display: table-row-group !important; }
           #print-laporan tr { display: table-row !important; }
-          #print-laporan th, #print-laporan td { display: table-cell !important; }
           #print-laporan .flex { display: flex !important; }
           #print-laporan .grid { display: grid !important; }
           @page { margin: 1cm; size: portrait; }
@@ -510,45 +540,79 @@ export default function AdminAntrianPage() {
             </div>
           </div>
           <div className="text-right">
-            <h2 className="text-on-surface font-serif text-3xl font-light italic">Daftar Antrean Harian</h2>
-            <p className="text-secondary font-medium tracking-tight mt-1">Tanggal: {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+            <h2 className="text-on-surface font-serif text-3xl font-light italic">Daily Booking Register</h2>
+            <p className="text-secondary font-medium tracking-tight mt-1">Date: {new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
           </div>
         </header>
 
         <main className="px-16 py-12 flex-grow">
+          {/* Executive Summary Section */}
           <section className="mb-12">
             <div className="flex items-center gap-4 mb-8">
-              <span className="h-[1px] w-8 bg-primary"></span>
-              <h3 className="font-serif text-xl font-bold tracking-tight uppercase text-primary">Daftar Pelanggan Hari Ini</h3>
+              <span className="h-[1px] w-8 bg-black"></span>
+              <h3 className="font-serif text-xl font-bold tracking-tight uppercase text-black">Executive Summary</h3>
             </div>
-            <table className="w-full text-left border-collapse">
+            <div className="grid grid-cols-3 gap-8">
+              <div className="col-span-1 bg-gray-50 p-6 border border-gray-200">
+                <p className="text-gray-600 text-[10px] font-bold uppercase tracking-widest mb-2">Total Bookings</p>
+                <p className="text-black font-serif text-3xl font-black">{total}</p>
+              </div>
+              <div className="col-span-1 bg-gray-50 p-6 border border-gray-200">
+                <p className="text-gray-600 text-[10px] font-bold uppercase tracking-widest mb-2">Processing</p>
+                <p className="text-black font-serif text-3xl font-black">{stats.processing}</p>
+              </div>
+              <div className="col-span-1 bg-gray-50 p-6 border border-gray-200">
+                <p className="text-gray-600 text-[10px] font-bold uppercase tracking-widest mb-2">Completed</p>
+                <p className="text-black font-serif text-3xl font-black">{stats.completed}</p>
+              </div>
+            </div>
+          </section>
+
+          <section className="mb-12">
+            <div className="flex items-center gap-4 mb-8">
+              <span className="h-[1px] w-8 bg-black"></span>
+              <h3 className="font-serif text-xl font-bold tracking-tight uppercase text-black">Today's Customer Register</h3>
+            </div>
+            <table className="w-full text-left border-collapse mb-8">
               <thead>
-                <tr className="bg-surface-container-highest/50">
-                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-secondary font-black">No. / Kode</th>
-                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-secondary font-black">Nama Pelanggan</th>
-                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-secondary font-black">Layanan</th>
-                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-secondary font-black">Kapster</th>
-                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-secondary font-black">Jam</th>
-                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-secondary font-black text-center">Status</th>
+                <tr className="bg-gray-100">
+                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-black font-black border border-gray-300">No. / Code</th>
+                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-black font-black border border-gray-300">Customer Name</th>
+                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-black font-black border border-gray-300">Service</th>
+                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-black font-black border border-gray-300">Barber</th>
+                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-black font-black border border-gray-300">Time</th>
+                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-black font-black text-center border border-gray-300">Status</th>
+                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-black font-black text-right border border-gray-300">Amount</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-outline-variant/10">
-                {bookings.map((booking, idx) => (
-                  <tr key={booking.id} className="group hover:bg-surface-container-low transition-colors">
-                    <td className="px-6 py-5 text-sm font-mono text-primary">#{String(idx + 1).padStart(3, '0')} ({booking.unique_code})</td>
-                    <td className="px-6 py-5 text-sm font-bold text-on-surface">
-                      <p className="text-white font-bold">{booking.customer_name}</p>
-                      <p className="text-xs text-secondary">{booking.customer_phone}</p>
+              <tbody className="divide-y divide-gray-200">
+                {(printBookings.length > 0 ? printBookings : bookings).map((booking, idx) => (
+                  <tr key={booking.id} className="group hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-5 text-sm font-mono text-black border border-gray-300">#{String(idx + 1).padStart(3, '0')} ({booking.unique_code})</td>
+                    <td className="px-6 py-5 text-sm font-bold text-black border border-gray-300">
+                      <p className="text-black font-bold">{booking.customer_name}</p>
+                      <p className="text-xs text-gray-600">{booking.customer_phone}</p>
                     </td>
-                    <td className="px-6 py-5 text-sm text-secondary">{booking.service_name}</td>
-                    <td className="px-6 py-5 text-sm text-on-surface/80">{booking.barber_name}</td>
-                    <td className="px-6 py-5 text-sm text-secondary">{booking.booking_time?.slice(0, 5)}</td>
-                    <td className="px-6 py-5 text-sm text-center">
-                      <span className="px-2 py-1 bg-[#eac249]/20 text-[#eac249] text-[10px] font-bold rounded uppercase tracking-wider">{booking.status}</span>
+                    <td className="px-6 py-5 text-sm text-gray-800 border border-gray-300">{booking.service_name}</td>
+                    <td className="px-6 py-5 text-sm text-black border border-gray-300">{booking.barber_name}</td>
+                    <td className="px-6 py-5 text-sm text-gray-800 border border-gray-300">{booking.booking_time?.slice(0, 5)}</td>
+                    <td className="px-6 py-5 text-sm text-center border border-gray-300">
+                      <span className="px-2 py-1 bg-gray-200 text-black text-[10px] font-bold rounded uppercase tracking-wider">{booking.status}</span>
+                    </td>
+                    <td className="px-6 py-5 text-sm font-bold text-black text-right border border-gray-300">
+                      Rp {Number(booking.total_amount).toLocaleString('en-US')}
                     </td>
                   </tr>
                 ))}
               </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan={6} className="px-6 py-4 text-right font-bold text-black border border-gray-300 uppercase text-xs tracking-widest">Total Amount</td>
+                  <td className="px-6 py-4 text-right font-black text-black border border-gray-300">
+                    Rp {Number((printBookings.length > 0 ? printBookings : bookings).reduce((acc, b) => acc + Number(b.total_amount), 0)).toLocaleString('en-US')}
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           </section>
         </main>

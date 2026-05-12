@@ -39,18 +39,18 @@ const ForgotPasswordPage = () => {
   const handleRequestReset = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email) {
-      showAlert('Silakan masukkan alamat email Anda.', 'error')
+      showAlert('Please enter your email address.', 'error')
       return
     }
 
     setLoading(true)
     try {
-      const response = await axios.post('http://localhost:8000/api/forgot-password/request', { email })
-      showAlert(response.data.message || 'Kode verifikasi telah berhasil dikirim ke email Anda.', 'success', () => {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/forgot-password/request`, { email })
+      showAlert(response.data.message || 'The verification code has been successfully sent to your email.', 'success', () => {
         setStep(2)
       })
     } catch (err: any) {
-      showAlert(err.response?.data?.message || 'Gagal memproses permintaan. Pastikan email terdaftar.', 'error')
+      showAlert(err.response?.data?.message || 'Failed memproses permintaan. Pastikan email terdaftar.', 'error')
     } finally {
       setLoading(false)
     }
@@ -65,12 +65,12 @@ const ForgotPasswordPage = () => {
 
     setLoading(true)
     try {
-      const response = await axios.post('http://localhost:8000/api/forgot-password/verify', { email, code })
-      showAlert(response.data.message || 'Kode verifikasi cocok.', 'success', () => {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/forgot-password/verify`, { email, code })
+      showAlert(response.data.message || 'Code verifikasi cocok.', 'success', () => {
         setStep(3)
       })
     } catch (err: any) {
-      showAlert(err.response?.data?.message || 'Kode verifikasi salah atau sudah kadaluarsa.', 'error')
+      showAlert(err.response?.data?.message || 'Code verifikasi salah atau sudah kadaluarsa.', 'error')
     } finally {
       setLoading(false)
     }
@@ -79,27 +79,27 @@ const ForgotPasswordPage = () => {
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!password || password.length < 6) {
-      showAlert('Kata sandi minimal harus terdiri dari 6 karakter.', 'error')
+      showAlert('Kata sandi minimal harus terdiri of 6 karakter.', 'error')
       return
     }
     if (password !== passwordConfirmation) {
-      showAlert('Konfirmasi kata sandi tidak cocok.', 'error')
+      showAlert('Confirmation kata sandi tidak cocok.', 'error')
       return
     }
 
     setLoading(true)
     try {
-      const response = await axios.post('http://localhost:8000/api/forgot-password/reset', {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/forgot-password/reset`, {
         email,
         code,
         password,
         password_confirmation: passwordConfirmation
       })
-      showAlert(response.data.message || 'Kata sandi Anda telah berhasil diperbarui.', 'success', () => {
+      showAlert(response.data.message || 'Your password has been successfully updated.', 'success', () => {
         navigate('/login')
       })
     } catch (err: any) {
-      showAlert(err.response?.data?.message || 'Gagal memperbarui kata sandi. Silakan coba kembali.', 'error')
+      showAlert(err.response?.data?.message || 'Failed memperbarui kata sandi. Silakan coba kembali.', 'error')
     } finally {
       setLoading(false)
     }
@@ -146,7 +146,7 @@ const ForgotPasswordPage = () => {
                 Secure Your Journey, Re-Access Elegance.
               </h1>
               <p className="text-secondary max-w-md font-body leading-relaxed text-sm">
-                Keamanan adalah prioritas kami. Ikuti langkah sederhana untuk memulihkan akses lengkap ke profil grooming premium Anda.
+                Security is our priority. Follow these simple steps to restore full access to your premium grooming profile.
               </p>
             </div>
           </div>
@@ -157,7 +157,7 @@ const ForgotPasswordPage = () => {
               
               {/* Stepper Header */}
               <div className="flex items-center justify-between mb-2">
-                <span className="text-primary text-xs uppercase tracking-widest font-bold">Langkah {step} dari 3</span>
+                <span className="text-primary text-xs uppercase tracking-widest font-bold">Langkah {step} of 3</span>
                 <div className="flex gap-2">
                   <span className={`w-3 h-1.5 rounded-full ${step >= 1 ? 'bg-primary' : 'bg-surface-container-highest'}`} />
                   <span className={`w-3 h-1.5 rounded-full ${step >= 2 ? 'bg-primary' : 'bg-surface-container-highest'}`} />
@@ -168,16 +168,16 @@ const ForgotPasswordPage = () => {
               {step === 1 && (
                 <div className="space-y-6">
                   <div>
-                    <h2 className="text-2xl font-headline font-bold text-on-surface mb-2">Lupa Kata Sandi</h2>
+                    <h2 className="text-2xl font-headline font-bold text-on-surface mb-2">Forgot Password</h2>
                     <p className="text-secondary text-sm leading-relaxed">
-                      Masukkan alamat email terdaftar Anda di bawah ini. Kami akan mengirimkan 6 digit kode verifikasi untuk memvalidasi identitas Anda.
+                      Enter your registered email address below. We will send a 6-digit verification code to validate your identity.
                     </p>
                   </div>
 
                   <form className="space-y-6" onSubmit={handleRequestReset}>
                     <div className="space-y-2">
                       <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wider text-outline">
-                        Alamat Email Anda
+                        Your Email Address
                       </label>
                       <input
                         id="email"
@@ -195,7 +195,7 @@ const ForgotPasswordPage = () => {
                       disabled={loading}
                       className="w-full py-4 bg-primary text-[#3d2f00] font-bold rounded-lg tracking-widest uppercase hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 group shadow-lg shadow-primary/10 disabled:opacity-50 disabled:cursor-not-allowed text-xs"
                     >
-                      Kirim Kode Verifikasi
+                      Kirim Code Verifikasi
                       <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">send</span>
                     </button>
                   </form>
@@ -207,19 +207,19 @@ const ForgotPasswordPage = () => {
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <button onClick={() => setStep(1)} className="text-primary hover:underline flex items-center text-xs">
-                        <span className="material-symbols-outlined text-sm mr-1">arrow_back</span> Kembali ke Email
+                        <span className="material-symbols-outlined text-sm mr-1">arrow_back</span> Back to Email
                       </button>
                     </div>
-                    <h2 className="text-2xl font-headline font-bold text-on-surface mb-2">Verifikasi Email Anda</h2>
+                    <h2 className="text-2xl font-headline font-bold text-on-surface mb-2">Verify Your Email</h2>
                     <p className="text-secondary text-sm leading-relaxed">
-                      Kami telah mengirimkan 6 digit kode verifikasi ke email <strong className="text-on-surface">{email}</strong>. Silakan masukkan kode tersebut di bawah ini.
+                      We have sent a 6-digit verification code to the email <strong className="text-on-surface">{email}</strong>. Please enter the code below.
                     </p>
                   </div>
 
                   <form className="space-y-6" onSubmit={handleVerifyCode}>
                     <div className="space-y-2">
                       <label htmlFor="code" className="block text-xs font-semibold uppercase tracking-wider text-outline">
-                        Kode Verifikasi 6-Digit
+                        Code Verifikasi 6-Digit
                       </label>
                       <input
                         id="code"
@@ -238,7 +238,7 @@ const ForgotPasswordPage = () => {
                       disabled={loading}
                       className="w-full py-4 bg-primary text-[#3d2f00] font-bold rounded-lg tracking-widest uppercase hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 group shadow-lg shadow-primary/10 disabled:opacity-50 disabled:cursor-not-allowed text-xs"
                     >
-                      Verifikasi Kode
+                      Verifikasi Code
                       <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">check_circle</span>
                     </button>
                   </form>
@@ -248,16 +248,16 @@ const ForgotPasswordPage = () => {
               {step === 3 && (
                 <div className="space-y-6">
                   <div>
-                    <h2 className="text-2xl font-headline font-bold text-on-surface mb-2">Atur Ulang Kata Sandi</h2>
+                    <h2 className="text-2xl font-headline font-bold text-on-surface mb-2">Reset Password</h2>
                     <p className="text-secondary text-sm leading-relaxed">
-                      Identitas Anda berhasil diverifikasi. Masukkan kata sandi baru Anda di bawah ini untuk mereset akun Anda.
+                      Your identity has been successfully verified. Enter your new password below to reset your account.
                     </p>
                   </div>
 
                   <form className="space-y-6" onSubmit={handleResetPassword}>
                     <div className="space-y-2">
                       <label htmlFor="pw" className="block text-xs font-semibold uppercase tracking-wider text-outline">
-                        Kata Sandi Baru
+                        Password Baru
                       </label>
                       <div className="relative">
                         <input
@@ -283,7 +283,7 @@ const ForgotPasswordPage = () => {
 
                     <div className="space-y-2">
                       <label htmlFor="pw_conf" className="block text-xs font-semibold uppercase tracking-wider text-outline">
-                        Konfirmasi Kata Sandi Baru
+                        Confirm New Password
                       </label>
                       <div className="relative">
                         <input
@@ -312,7 +312,7 @@ const ForgotPasswordPage = () => {
                       disabled={loading}
                       className="w-full py-4 bg-primary text-[#3d2f00] font-bold rounded-lg tracking-widest uppercase hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 group shadow-lg shadow-primary/10 disabled:opacity-50 disabled:cursor-not-allowed text-xs"
                     >
-                      Simpan Kata Sandi Baru
+                      Save New Password
                       <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">lock_reset</span>
                     </button>
                   </form>
@@ -321,7 +321,7 @@ const ForgotPasswordPage = () => {
 
               <div className="text-center pt-2">
                 <Link to="/login" className="text-xs text-outline hover:text-primary transition-colors">
-                  Kembali ke halaman Login
+                  Back ke halaman Login
                 </Link>
               </div>
 

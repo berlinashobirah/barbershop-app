@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -64,7 +65,7 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        // Hapus token yang sedang digunakan
+        // Delete token yang sedang digunakan
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
@@ -95,7 +96,7 @@ class AuthController extends Controller
         if ($request->hasFile('profile_photo')) {
             if ($user->profile_photo) {
                 $oldPath = str_replace('/storage/', '', $user->profile_photo);
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($oldPath);
+                Storage::disk('public')->delete($oldPath);
             }
             $path = $request->file('profile_photo')->store('users', 'public');
             $user->profile_photo = '/storage/' . $path;

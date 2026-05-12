@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import LoadingScreen from '../../components/LoadingScreen'
 import { bustSettingsCache } from '../../hooks/usePublicSettings'
 
-const API_BASE = 'http://localhost:8000/api'
+const API_BASE = import.meta.env.VITE_API_URL
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface SettingsData {
@@ -60,7 +60,7 @@ function MapPicker({
         />
         {/* Overlay to show the pin is clickable note */}
         <div className="absolute bottom-2 left-2 bg-black/70 text-white text-[10px] px-2 py-1 rounded pointer-events-none">
-          📌 Pratinjau lokasi. Atur koordinat di bawah.
+          📌 Location preview. Set coordinates below.
         </div>
       </div>
 
@@ -107,14 +107,14 @@ function MapPicker({
         className="flex items-center gap-1.5 text-[11px] text-primary hover:underline"
       >
         <span className="material-symbols-outlined text-sm">open_in_new</span>
-        Buka di OpenStreetMap untuk mencari koordinat
+        Open in OpenStreetMap to find coordinates
       </a>
     </div>
   )
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export default function AdminPengaturanPage() {
+export default function AdminSettingsPage() {
   const navigate = useNavigate()
   const [settings, setSettings]   = useState<SettingsData>(defaultSettings)
   const [loading, setLoading]     = useState(true)
@@ -147,7 +147,7 @@ export default function AdminPengaturanPage() {
       })
       if (res.status === 401 || res.status === 403) { navigate('/login'); return }
       const json = await res.json()
-      if (!res.ok) throw new Error(json.message || 'Gagal memuat pengaturan')
+      if (!res.ok) throw new Error(json.message || 'Failed to load settings')
       setSettings({
         shop_name:         json.data.shop_name         || '',
         shop_email:        json.data.shop_email        || '',
@@ -159,7 +159,7 @@ export default function AdminPengaturanPage() {
         notes:             json.data.notes             || '',
       })
     } catch {
-      setError('Tidak dapat mengambil data pengaturan. Periksa koneksi Anda.')
+      setError('Failed to fetch settings data. Please check your connection.')
     } finally {
       setLoading(false)
     }
@@ -188,8 +188,8 @@ export default function AdminPengaturanPage() {
         body: JSON.stringify(payload),
       })
       const json = await res.json()
-      if (!res.ok) throw new Error(json.message || 'Gagal menyimpan pengaturan')
-      setMessage('Pengaturan berhasil disimpan.')
+      if (!res.ok) throw new Error(json.message || 'Failed menyimpan pengaturan')
+      setMessage('Settings berhasil disimpan.')
       bustSettingsCache()
       setSettings({
         shop_name:         json.data.shop_name         || settings.shop_name,
@@ -204,7 +204,7 @@ export default function AdminPengaturanPage() {
       // Trigger a custom event to notify other mounted components to reload settings if they listen to it
       window.dispatchEvent(new Event('settings-update'))
     } catch {
-      setError('Gagal menyimpan pengaturan. Coba lagi.')
+      setError('Failed to save settings. Try again.')
     } finally {
       setSaving(false)
     }
@@ -216,15 +216,15 @@ export default function AdminPengaturanPage() {
     setPwSuccess(null)
 
     if (!pwCurrent || !pwNew || !pwConfirm) {
-      setPwError('Semua kolom password harus diisi.')
+      setPwError('All password fields must be filled.')
       return
     }
     if (pwNew.length < 6) {
-      setPwError('Password baru minimal 6 karakter.')
+      setPwError('New password must be at least 6 characters.')
       return
     }
     if (pwNew !== pwConfirm) {
-      setPwError('Konfirmasi password tidak cocok.')
+      setPwError('Password confirmation does not match.')
       return
     }
 
@@ -244,13 +244,13 @@ export default function AdminPengaturanPage() {
         }),
       })
       const json = await res.json()
-      if (!res.ok) throw new Error(json.message || json.errors?.password?.[0] || 'Gagal mengubah password.')
-      setPwSuccess('Password berhasil diubah.')
+      if (!res.ok) throw new Error(json.message || json.errors?.password?.[0] || 'Failed to change password.')
+      setPwSuccess('Password successfully changed.')
       setPwCurrent('')
       setPwNew('')
       setPwConfirm('')
     } catch (err: unknown) {
-      setPwError(err instanceof Error ? err.message : 'Gagal mengubah password.')
+      setPwError(err instanceof Error ? err.message : 'Failed to change password.')
     } finally {
       setPwSaving(false)
     }
@@ -270,13 +270,13 @@ export default function AdminPengaturanPage() {
             Workspace Control
           </span>
           <h1 className="text-4xl font-headline font-bold mb-2 text-on-surface leading-tight">
-            Pengaturan Sistem
+            System Settings
           </h1>
           {settings.shop_name && (
             <p className="text-primary text-base font-semibold mb-1">{settings.shop_name}</p>
           )}
           <p className="text-secondary text-sm font-light max-w-md">
-            Konfigurasi informasi barbershop, lokasi peta, jam operasional, dan keamanan akun admin.
+            Configure barbershop information, map location, operational hours, and admin account security.
           </p>
         </div>
         <button
@@ -285,7 +285,7 @@ export default function AdminPengaturanPage() {
           className="px-6 py-3 bg-primary text-on-primary font-bold rounded-lg hover:brightness-110 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
         >
           <span className="material-symbols-outlined text-sm">save</span>
-          {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+          {saving ? 'Saving...' : 'Save Changes'}
         </button>
       </div>
 
@@ -318,26 +318,26 @@ export default function AdminPengaturanPage() {
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <span className="material-symbols-outlined text-primary">store</span>
                 </div>
-                <h2 className="text-xl font-headline font-bold tracking-tight">Informasi Barbershop</h2>
+                <h2 className="text-xl font-headline font-bold tracking-tight">Barbershop Information</h2>
               </div>
 
               <div className="space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-                      Nama Barbershop
+                      Barbershop Name
                     </label>
                     <input
                       className="w-full bg-surface-container-highest border border-outline-variant/20 p-3.5 rounded-lg text-sm focus:ring-1 focus:ring-primary outline-none transition-all"
                       type="text"
-                      placeholder="Nama toko Anda..."
+                      placeholder="Your shop name..."
                       value={settings.shop_name}
                       onChange={(e) => setSettings({ ...settings, shop_name: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-                      Email Bisnis
+                      Business Email
                     </label>
                     <input
                       className="w-full bg-surface-container-highest border border-outline-variant/20 p-3.5 rounded-lg text-sm focus:ring-1 focus:ring-primary outline-none transition-all"
@@ -351,7 +351,7 @@ export default function AdminPengaturanPage() {
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-                    Nomor Telepon
+                    Phone Number
                   </label>
                   <input
                     className="w-full bg-surface-container-highest border border-outline-variant/20 p-3.5 rounded-lg text-sm focus:ring-1 focus:ring-primary outline-none transition-all"
@@ -364,7 +364,7 @@ export default function AdminPengaturanPage() {
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-                    Alamat Lengkap
+                    Complete Address
                   </label>
                   <textarea
                     className="w-full bg-surface-container-highest border border-outline-variant/20 p-3.5 rounded-lg text-sm focus:ring-1 focus:ring-primary outline-none h-20 resize-none transition-all"
@@ -385,8 +385,8 @@ export default function AdminPengaturanPage() {
                   <span className="material-symbols-outlined text-primary">location_on</span>
                 </div>
                 <div>
-                  <h2 className="text-xl font-headline font-bold tracking-tight">Lokasi di Peta</h2>
-                  <p className="text-xs text-secondary mt-0.5">Koordinat yang tampil di landing page</p>
+                  <h2 className="text-xl font-headline font-bold tracking-tight">Location on Map</h2>
+                  <p className="text-xs text-secondary mt-0.5">Coordinates displayed on the landing page</p>
                 </div>
               </div>
               <MapPicker
@@ -407,15 +407,15 @@ export default function AdminPengaturanPage() {
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <span className="material-symbols-outlined text-primary">preview</span>
                 </div>
-                <h2 className="text-xl font-headline font-bold tracking-tight">Pratinjau</h2>
+                <h2 className="text-xl font-headline font-bold tracking-tight">Preview</h2>
               </div>
               <div className="space-y-4">
-                <InfoRow icon="storefront"  label="Nama"            value={settings.shop_name || '–'} />
+                <InfoRow icon="storefront"  label="Name"            value={settings.shop_name || '–'} />
                 <InfoRow icon="mail"        label="Email"           value={settings.shop_email || '–'} />
-                <InfoRow icon="call"        label="Telepon"         value={settings.phone || '–'} />
-                <InfoRow icon="location_on" label="Alamat"          value={settings.address || '–'} />
+                <InfoRow icon="call"        label="Phone"         value={settings.phone || '–'} />
+                <InfoRow icon="location_on" label="Address"          value={settings.address || '–'} />
                 {(lat != null && lng != null) && (
-                  <InfoRow icon="pin_drop"  label="Koordinat"       value={`${lat?.toFixed(4)}, ${lng?.toFixed(4)}`} />
+                  <InfoRow icon="pin_drop"  label="Coordinates"       value={`${lat?.toFixed(4)}, ${lng?.toFixed(4)}`} />
                 )}
 
               </div>
@@ -427,7 +427,7 @@ export default function AdminPengaturanPage() {
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <span className="material-symbols-outlined text-primary">security</span>
                 </div>
-                <h2 className="text-xl font-headline font-bold tracking-tight">Keamanan Akun</h2>
+                <h2 className="text-xl font-headline font-bold tracking-tight">Account Security</h2>
               </div>
 
               <button
@@ -436,7 +436,7 @@ export default function AdminPengaturanPage() {
               >
                 <div className="flex items-center gap-3">
                   <span className="material-symbols-outlined text-primary text-base">key</span>
-                  <span className="text-sm font-bold">Ubah Password Admin</span>
+                  <span className="text-sm font-bold">Edit Admin Password</span>
                 </div>
                 <span className="material-symbols-outlined text-neutral-500 transition-transform group-hover:translate-x-0.5">
                   {showPwForm ? 'expand_less' : 'chevron_right'}
@@ -457,21 +457,21 @@ export default function AdminPengaturanPage() {
                   )}
 
                   <PasswordInput
-                    label="Password Saat Ini"
+                    label="Current Password"
                     value={pwCurrent}
                     onChange={setPwCurrent}
                     show={showCurrentPw}
                     onToggle={() => setShowCurrentPw(v => !v)}
                   />
                   <PasswordInput
-                    label="Password Baru (min. 6 karakter)"
+                    label="New Password (min. 6 characters)"
                     value={pwNew}
                     onChange={setPwNew}
                     show={showNewPw}
                     onToggle={() => setShowNewPw(v => !v)}
                   />
                   <PasswordInput
-                    label="Konfirmasi Password Baru"
+                    label="Confirm New Password"
                     value={pwConfirm}
                     onChange={setPwConfirm}
                     show={showConfirmPw}
@@ -484,7 +484,7 @@ export default function AdminPengaturanPage() {
                     className="w-full px-4 py-3 bg-primary text-on-primary font-bold rounded-lg hover:brightness-110 transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     <span className="material-symbols-outlined text-sm">lock_reset</span>
-                    {pwSaving ? 'Menyimpan...' : 'Simpan Password Baru'}
+                    {pwSaving ? 'Saving...' : 'Save New Password'}
                   </button>
                 </div>
               )}

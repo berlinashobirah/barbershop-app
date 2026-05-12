@@ -6,14 +6,14 @@ const Navbar = () => {
   const navigate = useNavigate();
   const settings = usePublicSettings();
   
-  // Baca state dari localStorage secara reaktif
+  // Baca state of localStorage secara reaktif
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('auth_token'));
   const [user, setUser] = useState<{ name: string } | null>(() => {
     const s = localStorage.getItem('user');
     return s ? JSON.parse(s) : null;
   });
   
-  // Sinkronisasi setiap kali ada perubahan (login/logout dari tab lain atau halaman ini)
+  // Sinkronisasi setiap kali ada perubahan (login/logout of tab lain atau halaman ini)
   useEffect(() => {
     const syncAuth = () => {
       setToken(localStorage.getItem('auth_token'));
@@ -21,9 +21,9 @@ const Navbar = () => {
       setUser(s ? JSON.parse(s) : null);
     };
 
-    // 'auth-change' dikirim secara manual dari halaman Login setelah berhasil login
+    // 'auth-change' dikirim secara manual of halaman Login setelah berhasil login
     window.addEventListener('auth-change', syncAuth);
-    // 'storage' mendeteksi perubahan dari tab lain
+    // 'storage' mendeteksi perubahan of tab lain
     window.addEventListener('storage', syncAuth);
 
     return () => {
@@ -69,28 +69,28 @@ const Navbar = () => {
             onClick={isHome ? (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); } : undefined}
             className="text-neutral-400 font-medium hover:text-[#C5A028] transition-all duration-300 font-serif tracking-tight text-lg"
           >
-            Beranda
+            Home
           </a>
           <a
             href="#services"
             onClick={(e) => handleScroll(e, 'services')}
             className="text-neutral-400 font-medium hover:text-[#C5A028] transition-all duration-300 font-serif tracking-tight text-lg"
           >
-            Layanan
+            Service
           </a>
           <a
             href="#booking"
             onClick={(e) => handleScroll(e, 'booking')}
             className="text-neutral-400 font-medium hover:text-[#C5A028] transition-all duration-300 font-serif tracking-tight text-lg"
           >
-            Pesan Sesi
+            Book Session
           </a>
           <a
             href="#barbers"
             onClick={(e) => handleScroll(e, 'barbers')}
             className="text-neutral-400 font-medium hover:text-[#C5A028] transition-all duration-300 font-serif tracking-tight text-lg"
           >
-            Kapster
+            Barber
           </a>
         </div>
 
@@ -100,7 +100,7 @@ const Navbar = () => {
             to="/login"
             className="bg-primary-container text-on-primary-container px-6 py-2 rounded-lg font-bold tracking-wide uppercase transition-transform scale-95 hover:scale-100 active:opacity-80"
           >
-            Masuk
+            Log In
           </Link>
         ) : (
           <div className="flex items-center gap-4">
@@ -110,7 +110,7 @@ const Navbar = () => {
             <Link
               to="/profile"
               className="w-8 h-8 rounded-full border border-[#C5A028] flex items-center justify-center text-[#C5A028] hover:bg-[#C5A028]/10 transition-colors"
-              title="Pengaturan Akun"
+              title="Settings Akun"
             >
               <span className="material-symbols-outlined text-sm">settings</span>
             </Link>
@@ -118,7 +118,7 @@ const Navbar = () => {
               onClick={handleLogout}
               className="border border-primary-container text-primary-container px-4 py-2 font-bold uppercase tracking-widest text-xs rounded-md hover:bg-primary-container/10 transition-all active:scale-95"
             >
-              Keluar
+              Logout
             </button>
           </div>
         )}

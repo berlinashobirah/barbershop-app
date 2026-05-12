@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Campaign;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class CampaignController extends Controller
 {
@@ -37,10 +39,14 @@ class CampaignController extends Controller
             'description' => 'required|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'discount_type' => 'required|in:points_based,specific_service,all_services',
+            'discount_unit' => 'required|in:fixed,percentage',
             'service_id' => 'nullable|exists:services,id',
             'required_points' => 'required_if:discount_type,points_based|integer|min:0',
             'discount_amount' => 'required|numeric|min:0',
+            'min_transaction' => 'nullable|numeric|min:0',
+            'max_discount' => 'nullable|numeric|min:0',
             'is_active' => 'boolean',
+            'is_new_member_only' => 'boolean',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
         ]);
@@ -63,19 +69,23 @@ class CampaignController extends Controller
             'description' => 'string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'discount_type' => 'in:points_based,specific_service,all_services',
+            'discount_unit' => 'in:fixed,percentage',
             'service_id' => 'nullable|exists:services,id',
             'required_points' => 'integer|min:0',
             'discount_amount' => 'numeric|min:0',
+            'min_transaction' => 'nullable|numeric|min:0',
+            'max_discount' => 'nullable|numeric|min:0',
             'is_active' => 'boolean',
+            'is_new_member_only' => 'boolean',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
         ]);
 
         if ($request->hasFile('image')) {
             // Delete old image if needed
-            if ($campaign->image && \Illuminate\Support\Str::startsWith($campaign->image, '/storage/')) {
+            if ($campaign->image && Str::startsWith($campaign->image, '/storage/')) {
                 $oldPath = str_replace('/storage/', '', $campaign->image);
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($oldPath);
+                Storage::disk('public')->delete($oldPath);
             }
             $imagePath = $request->file('image')->store('campaigns', 'public');
             $validated['image'] = '/storage/' . $imagePath;
@@ -88,6 +98,13 @@ class CampaignController extends Controller
     public function destroy($id)
     {
         $campaign = Campaign::findOrFail($id);
+        
+        // Cleanup the physical image file if it exists
+        if ($campaign->image && Str::startsWith($campaign->image, '/storage/')) {
+            $path = str_replace('/storage/', '', $campaign->image);
+            Storage::disk('public')->delete($path);
+        }
+
         $campaign->delete();
         return response()->json(['message' => 'Campaign deleted successfully']);
     }

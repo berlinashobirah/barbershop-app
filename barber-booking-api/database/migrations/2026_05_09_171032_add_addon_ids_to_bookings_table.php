@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('bookings', function (Blueprint $table) {
-            $table->json('addon_ids')->nullable()->after('service_id');
+            $table->json('addon_ids')->nullable();
             $table->integer('reschedule_count')->default(0)->after('payment_status');
             $table->boolean('requires_reschedule')->default(false)->after('reschedule_count');
         });

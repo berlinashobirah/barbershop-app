@@ -4,14 +4,14 @@ import { usePublicSettings } from '../../hooks/usePublicSettings'
 
 const navItems = [
   { to: '/admin/dashboard', icon: 'dashboard', label: 'Dashboard' },
-  { to: '/admin/antrian', icon: 'receipt_long', label: 'Kelola Antrean' },
-  { to: '/admin/jadwal', icon: 'calendar_month', label: 'Jadwal Kapster' },
-  { to: '/admin/members', icon: 'group', label: 'Kelola Member' },
-  { to: '/admin/layanan', icon: 'content_cut', label: 'Kelola Layanan' },
-  { to: '/admin/barbers', icon: 'face', label: 'Kelola Kapster' },
-  { to: '/admin/promotions', icon: 'confirmation_number', label: 'Promosi & Diskon' },
-  { to: '/admin/laporan', icon: 'analytics', label: 'Laporan' },
-  { to: '/admin/pengaturan', icon: 'settings', label: 'Pengaturan' },
+  { to: '/admin/antrian', icon: 'receipt_long', label: 'Manage Bookings' },
+  { to: '/admin/jadwal', icon: 'calendar_month', label: 'Barber Schedule' },
+  { to: '/admin/members', icon: 'group', label: 'Manage Members' },
+  { to: '/admin/layanan', icon: 'content_cut', label: 'Manage Services' },
+  { to: '/admin/barbers', icon: 'face', label: 'Manage Barbers' },
+  { to: '/admin/promotions', icon: 'confirmation_number', label: 'Promotions & Diskon' },
+  { to: '/admin/laporan', icon: 'analytics', label: 'Reports' },
+  { to: '/admin/pengaturan', icon: 'settings', label: 'Settings' },
 ]
 
 interface SimpleBooking {
@@ -44,7 +44,7 @@ export default function AdminLayout() {
       if (!token) return
 
       try {
-        const res = await fetch('http://localhost:8000/api/admin/bookings/all', {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/bookings/all`, {
           headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
         })
         if (!res.ok) return
@@ -144,7 +144,7 @@ export default function AdminLayout() {
         <div className="p-6 mt-auto border-t border-zinc-800/30">
           <button className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-neutral-400 hover:bg-neutral-800/40 hover:text-white transition-colors text-sm font-medium">
             <span className="material-symbols-outlined text-sm">logout</span>
-            <span>Keluar</span>
+            <span>Logout</span>
           </button>
         </div>
       </aside>
@@ -191,23 +191,23 @@ export default function AdminLayout() {
                       </div>
                       <div className="flex-1">
                         <p className="text-sm text-zinc-200 leading-tight">
-                          <span className="font-bold text-[#eac249]">Antrean Baru:</span> {booking.customer_name} ({booking.service_name})
+                          <span className="font-bold text-[#eac249]">New Queue:</span> {booking.customer_name} ({booking.service_name})
                         </p>
                         <p className="text-[10px] text-zinc-500 mt-1 font-mono">
-                          Pukul: {booking.booking_time?.slice(0, 5)} | Kode: #{booking.unique_code}
+                          Pukul: {booking.booking_time?.slice(0, 5)} | Code: #{booking.unique_code}
                         </p>
                       </div>
                     </div>
                   ))}
                   {recentBookings.length === 0 && (
-                    <div className="p-6 text-center text-zinc-500 text-xs">Belum ada notifikasi</div>
+                    <div className="p-6 text-center text-zinc-500 text-xs">No notifications</div>
                   )}
                 </div>
                 <button 
                   onClick={() => { navigate('/admin/antrian'); setShowDropdown(false); }}
                   className="block w-full py-3 bg-surface-container-highest/30 text-center text-[10px] font-bold text-[#eac249] uppercase tracking-widest hover:bg-surface-container-highest transition-colors"
                 >
-                  Lihat Semua Antrean
+                  Lihat All Antrean
                 </button>
               </div>
             )}
@@ -247,10 +247,10 @@ export default function AdminLayout() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm text-zinc-200 leading-tight">
-              <span className="font-bold text-[#eac249]">Antrean Baru:</span> {newBooking?.customer_name} ({newBooking?.service_name})
+              <span className="font-bold text-[#eac249]">New Queue:</span> {newBooking?.customer_name} ({newBooking?.service_name})
             </p>
             <p className="text-[10px] text-zinc-500 mt-1.5 font-mono">
-              Waktu: {newBooking?.booking_time?.slice(0, 5)} | Kode: #{newBooking?.unique_code}
+              Time: {newBooking?.booking_time?.slice(0, 5)} | Code: #{newBooking?.unique_code}
             </p>
             
             <div className="flex gap-2 mt-4">
@@ -264,7 +264,7 @@ export default function AdminLayout() {
                 onClick={() => setShowNotification(false)}
                 className="border border-zinc-700 text-zinc-400 hover:text-white px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-wider transition-colors"
               >
-                Tutup
+                Close
               </button>
             </div>
           </div>

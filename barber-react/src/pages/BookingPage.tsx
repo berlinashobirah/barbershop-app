@@ -37,12 +37,17 @@ interface Campaign {
   service_id: number | null;
   required_points: number;
   discount_amount: string | number;
+  discount_unit?: 'fixed' | 'percentage';
+  min_transaction?: string | number;
+  max_discount?: string | number;
+  is_new_member_only?: boolean;
+  service?: { name: string };
 }
 
 const BookingPage = () => {
   const navigate = useNavigate()
   
-  // Auth State — dibaca dari localStorage di dalam komponen agar reaktif
+  // Auth State — dibaca of localStorage di dalam komponen agar reaktif
   const [token] = useState(() => localStorage.getItem('auth_token'))
   const [user, setUser] = useState(() => {
     const str = localStorage.getItem('user')
@@ -51,7 +56,7 @@ const BookingPage = () => {
 
   useEffect(() => {
     if (token) {
-      axios.get('http://localhost:8000/api/user', {
+      axios.get(`${import.meta.env.VITE_API_URL}/user`, {
         headers: { Authorization: `Bearer ${token}` }
       }).then((res) => {
         setUser(res.data)
@@ -75,8 +80,8 @@ const BookingPage = () => {
   const [selectedBarber, setSelectedBarber] = useState<number | null>(null)
   const [selectedCampaign, setSelectedCampaign] = useState<number | null>(null)
 
-  const mainServices = services.filter(s => !s.is_addon)
-  const addonServices = services.filter(s => s.is_addon)
+  const mainServices = services.filter(s => Number(s.is_addon) !== 1)
+  const addonServices = services.filter(s => Number(s.is_addon) === 1)
 
   // Calendar State
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date())
@@ -86,11 +91,11 @@ const BookingPage = () => {
     const fetchServices = async () => {
       try {
         const [resServices, resCampaigns] = await Promise.all([
-          axios.get('http://localhost:8000/api/services'),
-          axios.get('http://localhost:8000/api/campaigns')
+          axios.get(`${import.meta.env.VITE_API_URL}/services`),
+          axios.get(`${import.meta.env.VITE_API_URL}/campaigns`)
         ]);
         setServices(resServices.data.data);
-        const mains = resServices.data.data.filter((s: Service) => !s.is_addon);
+        const mains = resServices.data.data.filter((s: Service) => Number(s.is_addon) !== 1);
         if (mains.length > 0) {
           setSelectedService(mains[0].id);
         }
@@ -113,7 +118,7 @@ const BookingPage = () => {
       
       try {
         const dateStr = selectedDate.toLocaleDateString('en-CA'); // YYYY-MM-DD
-        const res = await axios.get(`http://localhost:8000/api/slots/availability?date=${dateStr}`);
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/slots/availability?date=${dateStr}`);
         setAvailableSlots(res.data.data);
       } catch (error) {
         console.error('Error fetching slots:', error);
@@ -129,7 +134,7 @@ const BookingPage = () => {
         setSelectedBarber(null);
         try {
           const dateStr = selectedDate.toLocaleDateString('en-CA');
-          const res = await axios.get(`http://localhost:8000/api/barbers/available?date=${dateStr}&time=${selectedTime}`);
+          const res = await axios.get(`${import.meta.env.VITE_API_URL}/barbers/available?date=${dateStr}&time=${selectedTime}`);
           setAvailableBarbers(res.data.data);
         } catch (error) {
           console.error('Error fetching barbers:', error);
@@ -183,17 +188,60 @@ const BookingPage = () => {
   };
 
   const formatRupiah = (price: number | string) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(price));
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(price));
   };
 
   const getImageUrl = (imagePath: string | null) => {
     if (!imagePath) return '';
     if (imagePath.startsWith('http')) return imagePath;
-    return `http://localhost:8000${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+    return `${import.meta.env.VITE_BASE_URL}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
   };
 
   const service = services.find((s) => s.id === selectedService);
   const barber = availableBarbers.find((b) => b.id === selectedBarber);
+
+  const computeDiscount = (camp: Campaign, rawSubtotal: number) => {
+    if (Number(camp.min_transaction) > 0 && rawSubtotal < Number(camp.min_transaction)) {
+      return 0;
+    }
+    let val = 0;
+    if (camp.discount_unit === 'percentage') {
+      val = (rawSubtotal * Number(camp.discount_amount)) / 100;
+      if (Number(camp.max_discount) > 0 && val > Number(camp.max_discount)) {
+        val = Number(camp.max_discount);
+      }
+    } else {
+      val = Number(camp.discount_amount);
+    }
+    return val;
+  };
+
+  const currentSubtotal = useMemo(() => {
+    const m = service ? Number(service.price) : 0;
+    const a = selectedAddons.reduce((s, id) => s + Number(services.find(item => item.id === id)?.price || 0), 0);
+    return m + a;
+  }, [service, selectedAddons, services]);
+
+  const currentDiscountObj = campaigns.find(c => c.id === selectedCampaign);
+  const currentDiscountVal = currentDiscountObj ? computeDiscount(currentDiscountObj, currentSubtotal) : 0;
+
+  // Auto-clear campaign selection if conditions no longer match (e.g., user removes an addon and drops below min spend)
+  useEffect(() => {
+    if (selectedCampaign && campaigns.length > 0) {
+      const camp = campaigns.find(c => c.id === selectedCampaign);
+      if (camp) {
+        const isPointsBased = camp.discount_type === 'points_based';
+        const hasEnoughPoints = user && user.points >= camp.required_points;
+        const isApplicableService = camp.discount_type !== 'specific_service' || camp.service_id === selectedService;
+        const meetsMinTrans = Number(camp.min_transaction || 0) <= 0 || currentSubtotal >= Number(camp.min_transaction);
+        const isNewMemberEligible = !camp.is_new_member_only || !(user && user.has_booking);
+        
+        if ((isPointsBased && !hasEnoughPoints) || !isApplicableService || !meetsMinTrans || !isNewMemberEligible) {
+          setSelectedCampaign(null);
+        }
+      }
+    }
+  }, [selectedCampaign, campaigns, selectedService, currentSubtotal, user]);
 
   if (loading) return <LoadingScreen />;
 
@@ -207,7 +255,7 @@ const BookingPage = () => {
             to="/login"
             className="bg-primary-container text-on-primary-container px-6 py-2 rounded-lg font-bold tracking-wide uppercase transition-transform hover:scale-105 active:opacity-80"
           >
-            Masuk
+            Log In
           </Link>
         ) : (
           <div className="flex items-center gap-4">
@@ -220,19 +268,19 @@ const BookingPage = () => {
 
       <main className="pt-32 pb-24 px-6 md:px-12 max-w-7xl mx-auto">
         <header className="mb-12">
-          <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary mb-4 tracking-tight">Reservasi Sesi Presisi</h1>
-          <p className="text-secondary max-w-2xl text-lg">Pilih layanan dan waktu yang sesuai dengan jadwal Anda. Kami memastikan pengalaman premium untuk setiap sesi.</p>
+          <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary mb-4 tracking-tight">Precision Session Reservation</h1>
+          <p className="text-secondary max-w-2xl text-lg">Select service and time that suits your schedule. We ensure a premium experience for every session.</p>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left: Selection Flow */}
           <div className="lg:col-span-8 space-y-12">
 
-            {/* Section 1: Layanan */}
+            {/* Section 1: Service */}
             <section>
               <div className="flex items-center gap-3 mb-6">
                 <span className="text-primary font-headline text-2xl italic">01.</span>
-                <h2 className="font-headline text-2xl font-bold tracking-tight">Pilih Layanan Utama</h2>
+                <h2 className="font-headline text-2xl font-bold tracking-tight">Select Main Service</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {mainServices.map((svc) => (
@@ -251,7 +299,7 @@ const BookingPage = () => {
                     </div>
                     <h3 className="font-headline text-xl font-bold mb-2 group-hover:text-primary transition-colors">{svc.name}</h3>
                     <p className="text-sm text-secondary leading-relaxed line-clamp-2">
-                      {svc.description || `${svc.duration_minutes} Menit`}
+                      {svc.description || `${svc.duration_minutes} Minutes`}
                     </p>
                   </div>
                 ))}
@@ -263,7 +311,7 @@ const BookingPage = () => {
               <section>
                 <div className="flex items-center gap-3 mb-6">
                   <span className="text-primary font-headline text-2xl italic">+</span>
-                  <h2 className="font-headline text-2xl font-bold tracking-tight">Tambah Add-Ons (Opsional)</h2>
+                  <h2 className="font-headline text-2xl font-bold tracking-tight">Add Add-Ons (Optional)</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {addonServices.map((addon) => {
@@ -294,18 +342,18 @@ const BookingPage = () => {
               </section>
             )}
 
-            {/* Section 2: Waktu */}
+            {/* Section 2: Time */}
             <section>
               <div className="flex items-center gap-3 mb-6">
                 <span className="text-primary font-headline text-2xl italic">02.</span>
-                <h2 className="font-headline text-2xl font-bold tracking-tight">Atur Waktu Kedatangan</h2>
+                <h2 className="font-headline text-2xl font-bold tracking-tight">Set Arrival Time</h2>
               </div>
               <div className="bg-surface-container-low p-8 rounded-lg space-y-8 border border-outline-variant/10">
                 {/* Calendar header */}
                 <div>
                   <div className="flex justify-between items-center mb-6">
                     <h3 className="font-headline text-lg font-bold">
-                      {currentMonth.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}
+                      {currentMonth.toLocaleString('en-US', { month: 'long', year: 'numeric' })}
                     </h3>
                     <div className="flex gap-4">
                       <button 
@@ -324,7 +372,7 @@ const BookingPage = () => {
                     </div>
                   </div>
                   <div className="grid grid-cols-7 gap-2 text-center text-xs font-bold uppercase tracking-widest text-secondary mb-4">
-                    {['Min','Sen','Sel','Rab','Kam','Jum','Sab'].map(d => <div key={d}>{d}</div>)}
+                    {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => <div key={d}>{d}</div>)}
                   </div>
                   <div className="grid grid-cols-7 gap-2">
                     {calendarDays.map((d, i) => {
@@ -353,8 +401,8 @@ const BookingPage = () => {
                 {/* Time slots */}
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-headline text-lg font-bold">Slot Jam Tersedia</h3>
-                    <span className="text-xs text-secondary italic">Klik untuk melihat kapster</span>
+                    <h3 className="font-headline text-lg font-bold">Available Time Slots</h3>
+                    <span className="text-xs text-secondary italic">Click to view barber</span>
                   </div>
                   
                   {availableSlots.length > 0 ? (
@@ -388,7 +436,7 @@ const BookingPage = () => {
                           >
                             <div className="text-lg font-bold">{slot.time}</div>
                             <div className={`text-[10px] uppercase tracking-tighter ${isSelected ? 'text-on-primary/80' : (slot.is_full || isPastTime) ? 'text-error' : 'text-primary'}`}>
-                              {isSelected ? 'Terpilih' : isPastTime ? 'Sudah Lewat' : slot.is_full ? 'Sudah Penuh' : `${slot.available_barbers} Kapster`}
+                              {isSelected ? 'Terpilih' : isPastTime ? 'Passed' : slot.is_full ? 'Sudah Penuh' : `${slot.available_barbers} Barber`}
                             </div>
                           </button>
                         )
@@ -397,23 +445,23 @@ const BookingPage = () => {
                   ) : (
                     <div className="text-center text-secondary p-8 border border-dashed border-outline-variant rounded-lg">
                       <span className="material-symbols-outlined text-4xl mb-2 opacity-50">event_busy</span>
-                      <p>Silakan pilih tanggal untuk melihat slot waktu.</p>
+                      <p>Please select a date to view time slots.</p>
                     </div>
                   )}
                 </div>
               </div>
             </section>
 
-            {/* Section 3: Kapster */}
+            {/* Section 3: Barber */}
             <section className={selectedTime ? 'opacity-100' : 'opacity-40 pointer-events-none transition-opacity duration-500'}>
               <div className="flex items-center gap-3 mb-6">
                 <span className="text-primary font-headline text-2xl italic">03.</span>
-                <h2 className="font-headline text-2xl font-bold tracking-tight">Pilih Kapster</h2>
+                <h2 className="font-headline text-2xl font-bold tracking-tight">Select Barber</h2>
               </div>
               
               {!selectedTime ? (
                 <div className="bg-surface-container-low p-8 rounded-lg border border-outline-variant/10 text-center text-secondary">
-                  Silakan pilih slot waktu terlebih dahulu untuk melihat kapster yang tersedia.
+                  Please select a time slot first to view available barbers.
                 </div>
               ) : !token ? (
                 /* GUEST: tidak bisa pilih kapster — akan di-random otomatis */
@@ -422,13 +470,13 @@ const BookingPage = () => {
                     <span className="material-symbols-outlined text-primary text-3xl">shuffle</span>
                   </div>
                   <div>
-                    <h3 className="font-bold text-on-surface text-lg mb-1">Kapster Acak Tersedia</h3>
+                    <h3 className="font-bold text-on-surface text-lg mb-1">Barber Acak Tersedia</h3>
                     <p className="text-secondary text-sm leading-relaxed">
-                      Sebagai tamu, kapster terbaik yang sedang tersedia akan kami pilihkan secara otomatis untuk Anda.
+                      As a guest, the best available barber will be automatically selected for you.
                     </p>
                     <p className="text-[11px] text-primary/70 mt-3 uppercase tracking-widest">
                       <span className="material-symbols-outlined text-xs align-middle mr-1">login</span>
-                      <Link to="/login" className="hover:underline font-semibold">Masuk sebagai member</Link> untuk memilih kapster favorit Anda
+                      <Link to="/login" className="hover:underline font-semibold">Log In as member</Link> to choose your favorite barber
                     </p>
                   </div>
                 </div>
@@ -437,7 +485,7 @@ const BookingPage = () => {
                 <div className="relative group">
                   <div className="flex gap-4 overflow-x-auto pb-4 -mx-2 px-2 custom-scrollbar">
                     
-                    {/* Option: Siapa Saja */}
+                    {/* Option: Anyone */}
                     <div
                       onClick={() => setSelectedBarber(null)}
                       className={`min-w-[180px] flex-shrink-0 bg-surface-container-low border-2 rounded-lg p-4 cursor-pointer transition-all flex flex-col items-center justify-center text-center ${selectedBarber === null ? 'border-primary bg-primary/5' : 'border-transparent hover:border-outline-variant/50'}`}
@@ -445,8 +493,8 @@ const BookingPage = () => {
                       <div className="w-20 h-20 rounded-full bg-surface-container-high flex items-center justify-center mb-4">
                         <span className="material-symbols-outlined text-4xl text-secondary">group</span>
                       </div>
-                      <h3 className={`font-bold ${selectedBarber === null ? 'text-primary' : 'text-on-surface'}`}>Siapa Saja</h3>
-                      <p className="text-[10px] text-secondary uppercase tracking-widest mt-1">Kapster Tersedia</p>
+                      <h3 className={`font-bold ${selectedBarber === null ? 'text-primary' : 'text-on-surface'}`}>Anyone</h3>
+                      <p className="text-[10px] text-secondary uppercase tracking-widest mt-1">Barber Tersedia</p>
                     </div>
 
                     {availableBarbers.map((b) => (
@@ -478,12 +526,12 @@ const BookingPage = () => {
               )}
             </section>
 
-            {/* Section 4: Promo & Diskon (Hanya Member) */}
+            {/* Section 4: Promo & Discounts (Hanya Member) */}
             {token && campaigns.length > 0 && (
               <section className={selectedTime ? 'opacity-100' : 'opacity-40 pointer-events-none transition-opacity duration-500'}>
                 <div className="flex items-center gap-3 mb-6">
                   <span className="text-primary font-headline text-2xl italic">04.</span>
-                  <h2 className="font-headline text-2xl font-bold tracking-tight">Promo & Diskon</h2>
+                  <h2 className="font-headline text-2xl font-bold tracking-tight">Promo & Discounts</h2>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -491,9 +539,9 @@ const BookingPage = () => {
                     onClick={() => setSelectedCampaign(null)}
                     className={`bg-surface-container-low p-6 rounded-lg border-l-4 transition-all cursor-pointer group ${selectedCampaign === null ? 'border-primary bg-primary/5' : 'border-primary/30 hover:border-primary'}`}
                   >
-                    <h3 className="font-headline text-xl font-bold group-hover:text-primary transition-colors">Tanpa Promo</h3>
+                    <h3 className="font-headline text-xl font-bold group-hover:text-primary transition-colors">No Promo</h3>
                     <p className="text-sm text-secondary leading-relaxed mt-2">
-                      Lanjutkan tanpa menggunakan promo atau diskon.
+                      Continue without using a promo or discount.
                     </p>
                   </div>
 
@@ -501,15 +549,18 @@ const BookingPage = () => {
                     const isPointsBased = camp.discount_type === 'points_based';
                     const hasEnoughPoints = user && user.points >= camp.required_points;
                     const isApplicableService = camp.discount_type !== 'specific_service' || camp.service_id === selectedService;
-                    const isEligible = (!isPointsBased || hasEnoughPoints) && isApplicableService;
+                    const meetsMinTrans = Number(camp.min_transaction || 0) <= 0 || currentSubtotal >= Number(camp.min_transaction);
+                    const isNewMemberEligible = !camp.is_new_member_only || !(user && user.has_booking);
+                    const isEligible = (!isPointsBased || hasEnoughPoints) && isApplicableService && meetsMinTrans && isNewMemberEligible;
+
+                    if (!isEligible) return null;
 
                     return (
                       <div
                         key={camp.id}
-                        onClick={() => isEligible && setSelectedCampaign(camp.id)}
-                        className={`bg-surface-container-low p-6 rounded-lg border-l-4 transition-all group ${
-                          !isEligible ? 'opacity-50 cursor-not-allowed border-outline-variant' :
-                          selectedCampaign === camp.id ? 'border-primary bg-primary/5 cursor-pointer' : 'border-primary/30 hover:border-primary cursor-pointer'
+                        onClick={() => setSelectedCampaign(camp.id)}
+                        className={`bg-surface-container-low p-6 rounded-lg border-l-4 transition-all group cursor-pointer ${
+                          selectedCampaign === camp.id ? 'border-primary bg-primary/5' : 'border-primary/30 hover:border-primary'
                         }`}
                       >
                         <div className="flex justify-between items-start mb-4">
@@ -519,23 +570,32 @@ const BookingPage = () => {
                             <span className="material-symbols-outlined text-primary text-3xl">loyalty</span>
                           )}
                           <span className="text-primary font-bold text-sm bg-primary/10 px-2 py-1 rounded">
-                            {formatRupiah(camp.discount_amount)}
+                            {camp.discount_unit === 'percentage' ? `${Number(camp.discount_amount)}%` : formatRupiah(camp.discount_amount)}
                           </span>
                         </div>
                         <h3 className="font-headline text-xl font-bold mb-2 group-hover:text-primary transition-colors">{camp.title}</h3>
                         <p className="text-sm text-secondary leading-relaxed line-clamp-2">
                           {camp.description}
                         </p>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {Number(camp.min_transaction) > 0 && (
+                             <div className="text-[10px] text-on-surface-variant bg-surface-container-highest border border-outline-variant/30 px-2 py-0.5 rounded">Min: {formatRupiah(camp.min_transaction!)}</div>
+                          )}
+                          {camp.is_new_member_only && (
+                             <div className="text-[10px] text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded border border-emerald-400/20">⭐ New Member</div>
+                          )}
+                        </div>
                         {isPointsBased && (
                           <div className={`mt-3 text-xs font-bold ${hasEnoughPoints ? 'text-primary' : 'text-error'}`}>
-                            Butuh: {camp.required_points} Poin (Poin Anda: {user?.points || 0})
+                            Required: {camp.required_points} Poin (Your Points: {user?.points || 0})
                           </div>
                         )}
-                        {!isApplicableService && (
-                          <div className="mt-3 text-xs font-bold text-error">
-                            Tidak berlaku untuk layanan ini
+                        {camp.discount_type === 'specific_service' && (
+                          <div className="mt-3 text-[10px] font-bold text-primary/80 uppercase tracking-wider">
+                            Specific: {camp.service?.name || 'Specific Services'}
                           </div>
                         )}
+                        {/* End of campaign metadata */}
                       </div>
                     );
                   })}
@@ -548,12 +608,12 @@ const BookingPage = () => {
           {/* Right: Summary */}
           <div className="lg:col-span-4">
             <div className="bg-surface-container p-8 rounded-lg sticky top-32 border border-outline-variant/10 shadow-2xl">
-              <h3 className="font-headline text-2xl font-bold mb-6 pb-4 border-b border-white/10">Ringkasan Sesi</h3>
+              <h3 className="font-headline text-2xl font-bold mb-6 pb-4 border-b border-white/10">Session Summary</h3>
               
               <div className="space-y-6 mb-8">
                 <div>
-                  <div className="text-[10px] text-secondary uppercase tracking-widest mb-1">Layanan</div>
-                  <div className="font-bold text-lg">{service?.name || 'Belum dipilih'}</div>
+                  <div className="text-[10px] text-secondary uppercase tracking-widest mb-1">Service</div>
+                  <div className="font-bold text-lg">{service?.name || 'Not selected'}</div>
                   <div className="text-primary font-bold mt-1">{service ? formatRupiah(service.price) : '-'}</div>
                 </div>
 
@@ -576,24 +636,24 @@ const BookingPage = () => {
                 )}
                 
                 <div>
-                  <div className="text-[10px] text-secondary uppercase tracking-widest mb-1">Waktu Kedatangan</div>
+                  <div className="text-[10px] text-secondary uppercase tracking-widest mb-1">Arrival Time</div>
                   <div className="font-bold">
-                    {selectedDate.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                    {selectedDate.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                   </div>
                   <div className="text-primary font-bold mt-1 text-xl flex items-center gap-2">
                     <span className="material-symbols-outlined">schedule</span>
-                    {selectedTime || 'Pilih Jam'}
+                    {selectedTime || 'Select Time'}
                   </div>
                 </div>
 
                 <div>
-                  <div className="text-[10px] text-secondary uppercase tracking-widest mb-1">Kapster</div>
+                  <div className="text-[10px] text-secondary uppercase tracking-widest mb-1">Barber</div>
                   <div className="font-bold flex items-center gap-2">
                     <span className="material-symbols-outlined text-secondary">face</span>
                     {!token
-                      ? <span className="text-secondary italic text-sm">Acak Otomatis (Tamu)</span>
+                      ? <span className="text-secondary italic text-sm">Auto Random (Guest)</span>
                       : selectedBarber === null
-                      ? 'Siapa Saja (Tersedia)'
+                      ? 'Anyone (Available)'
                       : barber?.name
                     }
                   </div>
@@ -604,23 +664,13 @@ const BookingPage = () => {
                 {selectedCampaign && (
                   <div className="flex justify-between items-end mb-2 text-primary">
                     <div className="font-bold">Diskon Promo</div>
-                    <div className="font-bold">- {formatRupiah(campaigns.find(c => c.id === selectedCampaign)?.discount_amount || 0)}</div>
+                    <div className="font-bold">- {formatRupiah(currentDiscountVal)}</div>
                   </div>
                 )}
                 <div className="flex justify-between items-end">
-                  <div className="text-secondary font-bold">Total Estimasi</div>
+                  <div className="text-secondary font-bold">Total Estimated</div>
                   <div className="font-headline text-3xl font-bold text-white">
-                    {(() => {
-                      const mainPrice = service ? Number(service.price) : 0;
-                      const addonsPrice = selectedAddons.reduce((sum, id) => {
-                        const addon = services.find(s => s.id === id);
-                        return sum + (addon ? Number(addon.price) : 0);
-                      }, 0);
-                      const discount = selectedCampaign ? Number(campaigns.find(c => c.id === selectedCampaign)?.discount_amount || 0) : 0;
-                      // Diskon hanya memotong harga main service
-                      const discountedMain = Math.max(0, mainPrice - discount);
-                      return formatRupiah(discountedMain + addonsPrice);
-                    })()}
+                    {formatRupiah(Math.max(0, currentSubtotal - currentDiscountVal))}
                   </div>
                 </div>
               </div>
@@ -629,14 +679,7 @@ const BookingPage = () => {
               <button
                 disabled={!selectedService || !selectedTime}
                 onClick={() => {
-                  const mainPrice = service ? Number(service.price) : 0;
-                  const addonsPrice = selectedAddons.reduce((sum, id) => {
-                    const addon = services.find(s => s.id === id);
-                    return sum + (addon ? Number(addon.price) : 0);
-                  }, 0);
-                  const discount = selectedCampaign ? Number(campaigns.find(c => c.id === selectedCampaign)?.discount_amount || 0) : 0;
-                  const discountedMain = Math.max(0, mainPrice - discount);
-                  const total = discountedMain + addonsPrice;
+                  const total = Math.max(0, currentSubtotal - currentDiscountVal);
 
                   const data = {
                     serviceId: selectedService,
@@ -652,7 +695,7 @@ const BookingPage = () => {
                 }}
                 className="w-full bg-primary py-4 rounded-lg text-on-primary font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-[0_0_20px_rgba(197,160,40,0.2)] disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
               >
-                Konfirmasi Jadwal
+                Confirm Schedule
                 <span className="material-symbols-outlined">check_circle</span>
               </button>
             </div>

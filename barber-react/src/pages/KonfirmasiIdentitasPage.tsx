@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import LoadingScreen from '../components/LoadingScreen'
 
-const KonfirmasiIdentitasPage = () => {
+const ConfirmationIdentitasPage = () => {
   const navigate = useNavigate()
   
   // State for Authentication
@@ -22,7 +22,7 @@ const KonfirmasiIdentitasPage = () => {
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
 
-  // Ambil data booking yang disimpan di localStorage dari BookingPage
+  // Ambil data booking yang disimpan di localStorage of BookingPage
   const bookingDataStr = localStorage.getItem('booking_data')
   const bookingData = bookingDataStr ? JSON.parse(bookingDataStr) : null
 
@@ -30,7 +30,7 @@ const KonfirmasiIdentitasPage = () => {
     e.preventDefault()
     if (!bookingData) { setErrorMsg('Data booking tidak ditemukan. Silakan mulai ulang booking.'); return; }
     
-    // Strip non-digit dari nomor WA (hapus +62, spasi, dll) sebelum kirim ke backend
+    // Strip non-digit of nomor WA (remove +62, spaces, etc.) before sending to backend
     const cleanPhone = guestPhone.replace(/\D/g, '')
     if (cleanPhone.length < 9) {
       setErrorMsg('Nomor WhatsApp tidak valid. Minimal 9 digit.')
@@ -41,7 +41,7 @@ const KonfirmasiIdentitasPage = () => {
     setErrorMsg('')
     
     try {
-      const res = await axios.post('http://localhost:8000/api/guest/bookings', {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/guest/bookings`, {
         guest_name: guestName,
         guest_phone: cleanPhone,
         booking_date: bookingData.date,
@@ -68,7 +68,7 @@ const KonfirmasiIdentitasPage = () => {
 
     try {
       // 1. Login Dulu — kirim 'loginId' sesuai format API
-      const loginRes = await axios.post('http://localhost:8000/api/login', {
+      const loginRes = await axios.post(`${import.meta.env.VITE_API_URL}/login`, {
         loginId: loginEmail,
         password: loginPassword
       });
@@ -84,7 +84,7 @@ const KonfirmasiIdentitasPage = () => {
 
       // 2. Jika ada data booking, langsung submit. Jika tidak, cukup login & ke beranda.
       if (bookingData) {
-        const bookRes = await axios.post('http://localhost:8000/api/member/bookings', {
+        const bookRes = await axios.post(`${import.meta.env.VITE_API_URL}/member/bookings`, {
           booking_date: bookingData.date,
           booking_time: bookingData.time,
           barber_id: bookingData.barberId,
@@ -119,7 +119,7 @@ const KonfirmasiIdentitasPage = () => {
     setErrorMsg('')
 
     try {
-      const res = await axios.post('http://localhost:8000/api/member/bookings', {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/member/bookings`, {
         booking_date: bookingData.date,
         booking_time: bookingData.time,
         barber_id: bookingData.barberId,
@@ -140,7 +140,7 @@ const KonfirmasiIdentitasPage = () => {
         setToken(null);
         setUser(null);
         setActiveTab('guest');
-        setErrorMsg('Sesi Anda telah berakhir. Silakan isi data Guest atau Login kembali.');
+        setErrorMsg('Your session has expired. Please fill in Guest data or Login again.');
       } else {
         setErrorMsg(err.response?.data?.message || 'Terjadi kesalahan saat memproses booking.');
       }
@@ -174,7 +174,7 @@ const KonfirmasiIdentitasPage = () => {
               className="flex items-center gap-2 text-secondary/60 hover:text-primary transition-colors text-sm font-semibold uppercase tracking-wider"
             >
               <span className="material-symbols-outlined text-base">arrow_back</span>
-              Kembali ke Beranda
+              Back to Home
             </button>
           </div>
 
@@ -184,10 +184,10 @@ const KonfirmasiIdentitasPage = () => {
                 The Modern Artisan
               </span>
               <h1 className="font-headline text-4xl md:text-5xl font-bold tracking-tight text-on-surface leading-tight">
-                Konfirmasi Identitas
+                Identity Confirmation
               </h1>
               <p className="text-secondary font-body text-sm max-w-xs leading-relaxed">
-                Lengkapi detail Anda untuk melanjutkan pemesanan layanan grooming terbaik.
+                Complete your details to continue booking the best grooming services.
               </p>
             </div>
 
@@ -207,7 +207,7 @@ const KonfirmasiIdentitasPage = () => {
                     : 'border-transparent text-secondary/40 hover:text-secondary'
                   }`}
               >
-                Lanjutkan Cepat
+                Quick Continue
               </button>
               <button
                 id="tab-masuk-member"
@@ -217,7 +217,7 @@ const KonfirmasiIdentitasPage = () => {
                     : 'border-transparent text-secondary/40 hover:text-secondary'
                   }`}
               >
-                Masuk Member
+                Member Login
               </button>
             </div>
 
@@ -230,13 +230,13 @@ const KonfirmasiIdentitasPage = () => {
                       htmlFor="nama-lengkap"
                       className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider"
                     >
-                      Nama Lengkap
+                      Name Lengkap
                     </label>
                     <input
                       id="nama-lengkap"
                       value={guestName}
                       onChange={(e) => setGuestName(e.target.value)}
-                      className="w-full bg-transparent border-0 border-b border-outline-variant focus:ring-0 focus:border-primary px-0 py-3 text-on-surface placeholder:text-secondary/30 transition-all text-lg outline-none"
+                      className="pl-4 w-full bg-transparent border-0 border-b border-outline-variant focus:ring-0 focus:border-primary px-0 py-3 text-on-surface placeholder:text-secondary/30 transition-all text-lg outline-none"
                       placeholder="Contoh: Raden Wijaya"
                       type="text"
                       required
@@ -271,7 +271,7 @@ const KonfirmasiIdentitasPage = () => {
                       disabled={loading}
                       className="w-full bg-primary hover:bg-primary-container text-on-primary font-bold py-4 rounded-md shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                     >
-                      <span>{loading ? 'MEMPROSES...' : 'LANJUTKAN BOOKING'}</span>
+                      <span>{loading ? 'PROCESSING...' : 'CONTINUE BOOKING'}</span>
                       {!loading && <span className="material-symbols-outlined text-lg">arrow_forward</span>}
                     </button>
                   </div>
@@ -293,7 +293,7 @@ const KonfirmasiIdentitasPage = () => {
                       </div>
                       <div className="flex items-center gap-2 text-sm text-secondary">
                         <span className="material-symbols-outlined text-base">verified</span>
-                        <span className="font-semibold text-primary">Member Aktif</span>
+                        <span className="font-semibold text-primary">Active Member</span>
                       </div>
                     </div>
 
@@ -303,7 +303,7 @@ const KonfirmasiIdentitasPage = () => {
                         disabled={loading}
                         className="w-full bg-primary hover:bg-primary-container text-on-primary font-bold py-4 rounded-md shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                       >
-                        <span>{loading ? 'MEMPROSES...' : 'LANJUTKAN BOOKING'}</span>
+                        <span>{loading ? 'PROCESSING...' : 'CONTINUE BOOKING'}</span>
                         {!loading && <span className="material-symbols-outlined text-lg">arrow_forward</span>}
                       </button>
                     </div>
@@ -352,19 +352,19 @@ const KonfirmasiIdentitasPage = () => {
                         disabled={loading}
                         className="w-full bg-primary hover:bg-primary-container text-on-primary font-bold py-4 rounded-md shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                       >
-                        <span>{loading ? 'MEMPROSES...' : 'MASUK & LANJUTKAN'}</span>
+                        <span>{loading ? 'PROCESSING...' : 'LOGIN & CONTINUE'}</span>
                         {!loading && <span className="material-symbols-outlined text-lg">login</span>}
                       </button>
                     </div>
                     <p className="text-center text-xs text-secondary/40">
-                      Belum punya akun?{' '}
+                      Don't have an account?{' '}
                       <button
                         id="btn-daftar-member"
                         type="button"
                         onClick={() => navigate('/register')}
                         className="text-primary hover:underline font-semibold"
                       >
-                        Daftar sekarang
+                        Register sekarang
                       </button>
                     </p>
                   </form>
@@ -376,7 +376,7 @@ const KonfirmasiIdentitasPage = () => {
                 <div className="flex items-center gap-3 text-secondary/60">
                   <span className="material-symbols-outlined text-primary text-xl">verified_user</span>
                   <p className="text-[11px] leading-relaxed uppercase tracking-wider">
-                    Data Anda aman dan hanya digunakan untuk konfirmasi jadwal.
+                    Your data is safe and only used for schedule confirmation.
                   </p>
                 </div>
               </div>
@@ -389,10 +389,10 @@ const KonfirmasiIdentitasPage = () => {
           <div className="w-full max-w-md space-y-12">
             <div className="space-y-2">
               <span className="text-secondary/60 font-label text-xs uppercase tracking-[0.3em]">
-                Mengapa Member?
+                Why Become a Member?
               </span>
               <h2 className="font-headline text-3xl font-bold tracking-tight text-on-surface">
-                Dapatkan Keuntungan Lebih
+                Get More Benefits
               </h2>
             </div>
 
@@ -404,11 +404,11 @@ const KonfirmasiIdentitasPage = () => {
                     loyalty
                   </span>
                   <h3 className="text-xs font-bold text-on-surface uppercase tracking-widest">
-                    Poin Loyalitas
+                    Loyalty Points
                   </h3>
                 </div>
                 <p className="text-xs text-secondary/70 leading-relaxed">
-                  Kumpulkan poin di setiap kunjungan dan tukarkan dengan layanan gratis atau produk eksklusif.
+                  Collect points on every visit and redeem them for free services or exclusive products.
                 </p>
               </div>
 
@@ -419,11 +419,11 @@ const KonfirmasiIdentitasPage = () => {
                     history
                   </span>
                   <h3 className="text-xs font-bold text-on-surface uppercase tracking-widest">
-                    Riwayat Presisi
+                    Precision History
                   </h3>
                 </div>
                 <p className="text-xs text-secondary/70 leading-relaxed">
-                  Kami mencatat detail potongan rambut Anda untuk memastikan hasil yang konsisten setiap kali datang.
+                  We record your haircut details to ensure consistent results every time you visit.
                 </p>
               </div>
 
@@ -434,11 +434,11 @@ const KonfirmasiIdentitasPage = () => {
                     schedule
                   </span>
                   <h3 className="text-xs font-bold text-on-surface uppercase tracking-widest">
-                    Prioritas Antrean
+                    Queue Priority
                   </h3>
                 </div>
                 <p className="text-xs text-secondary/70 leading-relaxed">
-                  Member mendapatkan slot waktu prioritas dan kemudahan untuk reschedule kapan saja.
+                  Members get priority time slots and the ease of rescheduling anytime.
                 </p>
               </div>
             </div>
@@ -450,4 +450,4 @@ const KonfirmasiIdentitasPage = () => {
   )
 }
 
-export default KonfirmasiIdentitasPage
+export default ConfirmationIdentitasPage

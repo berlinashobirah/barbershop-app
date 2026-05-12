@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { usePublicSettings } from '../../hooks/usePublicSettings'
 import LoadingScreen from '../../components/LoadingScreen'
 
-const API_BASE = 'http://localhost:8000/api'
-const IMAGE_BASE = 'http://localhost:8000'
+const API_BASE = import.meta.env.VITE_API_URL
+const IMAGE_BASE = import.meta.env.VITE_BASE_URL
 
 interface Stats { total_booking: number; completed: number; revenue: number; total_members: number }
 interface ChartDay { day: number; label: string; revenue: number; bookings: number }
@@ -17,25 +17,29 @@ interface BookingRow {
 }
 
 const fmt = (n: number) => n >= 1e6 ? `Rp ${(n/1e6).toFixed(1).replace('.0','')}jt` : n >= 1e3 ? `Rp ${(n/1e3).toFixed(0)}k` : `Rp ${n}`
-const fmtFull = (n: number) => new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n)
+const fmtFull = (n: number) => new Intl.NumberFormat('en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n)
 
 const SC: Record<string,string> = {
   completed:'bg-emerald-500/20 text-emerald-400', processing:'bg-sky-500/20 text-sky-400',
   arrived:'bg-blue-500/20 text-blue-400', pending:'bg-amber-500/20 text-amber-400', cancelled:'bg-red-500/20 text-red-400',
 }
-const SL: Record<string,string> = { all:'Semua', completed:'Selesai', processing:'Diproses', arrived:'Hadir', pending:'Pending', cancelled:'Dibatalkan' }
+const SL: Record<string,string> = { all:'All', completed:'Completed', processing:'Processing', arrived:'Arrived', pending:'Pending', cancelled:'Cancelled' }
 
-export default function AdminLaporanPage() {
+export default function AdminReportsPage() {
   const navigate = useNavigate()
   const settings = usePublicSettings()
   const todayDay = new Date().getDate()
 
   // ── Filter state (draft) ──────────────────────────────────────────────────
   const [draftMonth, setDraftMonth]   = useState('')
+  const [draftStart, setDraftStart]   = useState('')
+  const [draftEnd, setDraftEnd]       = useState('')
   const [draftStatus, setDraftStatus] = useState('all')
 
   // ── Applied filter (used for all fetches) ────────────────────────────────
   const [appliedMonth, setAppliedMonth]   = useState('')
+  const [appliedStart, setAppliedStart]   = useState('')
+  const [appliedEnd, setAppliedEnd]       = useState('')
   const [appliedStatus, setAppliedStatus] = useState('all')
   const [page, setPage] = useState(1)
 
@@ -48,10 +52,12 @@ export default function AdminLaporanPage() {
   const [bookings, setBookings] = useState<BookingRow[]>([])
   const [lastPage, setLastPage] = useState(1)
   const [totalRows, setTotalRows] = useState(0)
+  const [printBookings, setPrintBookings] = useState<BookingRow[]>([])
 
   // ── Loading ───────────────────────────────────────────────────────────────
   const [loadingMain, setLoadingMain] = useState(true)
   const [loadingTable, setLoadingTable] = useState(true)
+  const [loadingPrint, setLoadingPrint] = useState(false)
   const [error, setError] = useState<string|null>(null)
 
   const token = () => localStorage.getItem('auth_token')
@@ -66,7 +72,16 @@ export default function AdminLaporanPage() {
   // ── Fetch all top sections (stats, chart, services, barbers) ─────────────
   const fetchMain = useCallback(async () => {
     setLoadingMain(true); setError(null)
-    const qs = appliedMonth ? `?month=${appliedMonth}` : ''
+    
+    const sp = new URLSearchParams()
+    if (appliedStart && appliedEnd) {
+      sp.set('start_date', appliedStart)
+      sp.set('end_date', appliedEnd)
+    } else if (appliedMonth) {
+      sp.set('month', appliedMonth)
+    }
+    const qs = sp.toString() ? `?${sp.toString()}` : ''
+
     try {
       const [s, c, sv, b] = await Promise.all([
         get(`/admin/laporan/stats${qs}`),
@@ -78,31 +93,78 @@ export default function AdminLaporanPage() {
       if (c)  { setChart(c.data); setChartMode(c.mode) }
       if (sv) setServices(sv.data)
       if (b)  setBarbers(b.data)
-    } catch { setError('Gagal memuat laporan.') }
+    } catch { setError('Failed to load report.') }
     finally { setLoadingMain(false) }
-  }, [get, appliedMonth])
+  }, [get, appliedMonth, appliedStart, appliedEnd])
 
   // ── Fetch transaction table ───────────────────────────────────────────────
   const fetchTable = useCallback(async () => {
     setLoadingTable(true)
     const qs = new URLSearchParams()
-    if (appliedMonth) qs.set('month', appliedMonth)
+    if (appliedStart && appliedEnd) {
+      qs.set('start_date', appliedStart)
+      qs.set('end_date', appliedEnd)
+    } else if (appliedMonth) {
+      qs.set('month', appliedMonth)
+    }
     if (appliedStatus !== 'all') qs.set('status', appliedStatus)
     qs.set('page', String(page))
     try {
       const d = await get(`/admin/laporan/bookings?${qs}`)
       if (d) { setBookings(d.data); setLastPage(d.last_page); setTotalRows(d.total) }
-    } catch { setError('Gagal memuat transaksi.') }
+    } catch { setError('Failed to load transactions.') }
     finally { setLoadingTable(false) }
-  }, [get, appliedMonth, appliedStatus, page])
+  }, [get, appliedMonth, appliedStart, appliedEnd, appliedStatus, page])
 
   useEffect(() => { fetchMain() }, [fetchMain])
   useEffect(() => { fetchTable() }, [fetchTable])
 
-  const applyFilter = () => { setAppliedMonth(draftMonth); setAppliedStatus(draftStatus); setPage(1) }
-  const resetFilter = () => { setDraftMonth(''); setDraftStatus('all'); setAppliedMonth(''); setAppliedStatus('all'); setPage(1) }
-  const isDirty = draftMonth !== appliedMonth || draftStatus !== appliedStatus
-  const isFiltered = appliedMonth !== '' || appliedStatus !== 'all'
+  const handleExportPDF = async () => {
+    setLoadingPrint(true)
+    try {
+      const qs = new URLSearchParams()
+      if (appliedStart && appliedEnd) {
+        qs.set('start_date', appliedStart); qs.set('end_date', appliedEnd)
+      } else if (appliedMonth) {
+        qs.set('month', appliedMonth)
+      }
+      if (appliedStatus !== 'all') qs.set('status', appliedStatus)
+      qs.set('limit', 'all') // Trigger non-paginated complete set on backend
+
+      const d = await get(`/admin/laporan/bookings?${qs}`)
+      if (d) {
+        setPrintBookings(d.data)
+        // Allow time for component to re-render the full row mapping before opening native print UI
+        setTimeout(() => {
+          window.print()
+          setLoadingPrint(false)
+        }, 500)
+      } else {
+        setLoadingPrint(false)
+      }
+    } catch (e) {
+      console.error(e)
+      setLoadingPrint(false)
+      alert('Failed to prepare print data.')
+    }
+  }
+
+  const applyFilter = () => { 
+    setAppliedMonth(draftMonth); 
+    setAppliedStart(draftStart); 
+    setAppliedEnd(draftEnd); 
+    setAppliedStatus(draftStatus); 
+    setPage(1); 
+  }
+  
+  const resetFilter = () => { 
+    setDraftMonth(''); setDraftStart(''); setDraftEnd(''); setDraftStatus('all'); 
+    setAppliedMonth(''); setAppliedStart(''); setAppliedEnd(''); setAppliedStatus('all'); 
+    setPage(1); 
+  }
+
+  const isDirty = draftMonth !== appliedMonth || draftStart !== appliedStart || draftEnd !== appliedEnd || draftStatus !== appliedStatus
+  const isFiltered = appliedMonth !== '' || (appliedStart !== '' && appliedEnd !== '') || appliedStatus !== 'all'
 
   const maxRev = Math.max(...chart.map(d => d.revenue), 1)
 
@@ -121,11 +183,47 @@ export default function AdminLaporanPage() {
             top: 0 !important;
             left: 0 !important;
             width: 100% !important;
-            background-color: #131313 !important;
-            color: #e5e2e1 !important;
+            background-color: #ffffff !important;
+            color: #1a1a1a !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             font-family: 'Manrope', sans-serif !important;
+          }
+
+          /* ENSURE EXPLICIT BLACK FOR ALMOST EVERYTHING TO BE SAFE */
+          #print-laporan * {
+            color: #000000 !important;
+          }
+
+          #print-laporan .text-secondary,
+          #print-laporan .text-on-surface-variant {
+            color: #444444 !important;
+          }
+
+          /* Handle box background colors for print */
+          #print-laporan .bg-surface-container-low {
+            background-color: #fafafa !important;
+            border: 1px solid #eee !important;
+          }
+          #print-laporan .bg-surface-container-highest,
+          #print-laporan .bg-surface-container-highest\/50 {
+            background-color: #f1f1f1 !important;
+          }
+          
+          /* Ensure lines and dividers are visible */
+          #print-laporan .border-outline-variant\/5,
+          #print-laporan .divide-outline-variant\/10 > * + * {
+            border-color: #e5e5e5 !important;
+          }
+          
+          /* Maintain primary color (gold) across print elements */
+          #print-laporan .text-primary, 
+          #print-laporan .text-primary-container,
+          #print-laporan h1.text-primary {
+            color: #b78b29 !important; /* Slightly darkened gold for better printing contrast */
+          }
+          #print-laporan .bg-primary {
+            background-color: #cba340 !important;
           }
           
           /* Restore proper table layouts */
@@ -133,7 +231,7 @@ export default function AdminLaporanPage() {
           #print-laporan thead { display: table-header-group !important; }
           #print-laporan tbody { display: table-row-group !important; }
           #print-laporan tr { display: table-row !important; }
-          #print-laporan th, #print-laporan td { display: table-cell !important; }
+          #print-laporan th, #print-laporan td { display: table-cell !important; border-bottom: 1px solid #f0f0f0 !important; }
           #print-laporan .flex { display: flex !important; }
           #print-laporan .grid { display: grid !important; }
           @page { margin: 1cm; size: portrait; }
@@ -142,36 +240,62 @@ export default function AdminLaporanPage() {
 
       <div className="pt-8 px-8 pb-12 min-h-screen">
         {loadingMain && <LoadingScreen />}
+        {loadingPrint && (
+          <div className="fixed inset-0 z-50 bg-surface/90 backdrop-blur-md flex flex-col items-center justify-center text-on-surface space-y-4 animate-fadeIn">
+            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-sm font-bold tracking-widest uppercase text-primary">Preparing Full Report...</p>
+            <p className="text-xs text-secondary">Loading all transaction data ({totalRows} rows)</p>
+          </div>
+        )}
         {/* Header */}
         <div className="mb-8 np">
           <span className="text-primary text-xs font-bold tracking-[0.3em] uppercase mb-2 block">Executive Insights</span>
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <h2 className="text-4xl font-headline font-bold text-on-surface">Laporan Performa</h2>
-              <p className="text-sm text-secondary mt-1">Ringkasan metrik dan pendapatan. Default menampilkan semua data.</p>
+              <h2 className="text-4xl font-headline font-bold text-on-surface">Performance Report</h2>
+              <p className="text-sm text-secondary mt-1">Summary of metrics and revenue. By default displays all data.</p>
             </div>
-            <button onClick={() => window.print()}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-primary text-on-primary text-xs font-bold hover:brightness-110 transition-all">
-              <span className="material-symbols-outlined text-sm">download</span>Export PDF
+            <button onClick={handleExportPDF} disabled={loadingPrint}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-primary text-on-primary text-xs font-bold hover:brightness-110 transition-all disabled:opacity-50">
+              <span className="material-symbols-outlined text-sm">download</span>
+              {loadingPrint ? 'Loading...' : 'Export PDF'}
             </button>
           </div>
         </div>
 
         {/* ── Filter Panel ── */}
         <div className="mb-8 bg-surface-container-low rounded-xl p-5 border border-outline-variant/10 np">
-          <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-4">Filter Laporan</p>
+          <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-4">Filter Reports</p>
           <div className="flex flex-wrap gap-4 items-end">
+            {/* Specific Range */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Date Range</label>
+              <div className="flex items-center gap-2">
+                <input type="date"
+                  className="bg-surface-container-highest text-on-surface px-3 py-2 rounded-lg outline-none border border-outline-variant/30 text-sm focus:ring-1 focus:ring-primary w-36"
+                  value={draftStart}
+                  onChange={e => { setDraftStart(e.target.value); if(e.target.value) setDraftMonth(''); }} />
+                <span className="text-secondary text-xs">-</span>
+                <input type="date"
+                  className="bg-surface-container-highest text-on-surface px-3 py-2 rounded-lg outline-none border border-outline-variant/30 text-sm focus:ring-1 focus:ring-primary w-36"
+                  value={draftEnd}
+                  onChange={e => { setDraftEnd(e.target.value); if(e.target.value) setDraftMonth(''); }} />
+              </div>
+            </div>
+
+            <div className="h-10 w-px bg-outline-variant/20 self-end mb-1"></div>
+
             {/* Month */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Bulan & Tahun </label>
+              <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Month/Year </label>
               <input type="month"
                 className="bg-surface-container-highest text-on-surface px-3 py-2 rounded-lg outline-none border border-outline-variant/30 text-sm focus:ring-1 focus:ring-primary"
                 value={draftMonth}
-                onChange={e => setDraftMonth(e.target.value)} />
+                onChange={e => { setDraftMonth(e.target.value); if(e.target.value) { setDraftStart(''); setDraftEnd(''); } }} />
             </div>
             {/* Status */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Status Transaksi</label>
+              <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Transaction Status</label>
               <div className="flex flex-wrap gap-1.5">
                 {['all','completed','pending','processing','arrived','cancelled'].map(s => (
                   <button key={s} onClick={() => setDraftStatus(s)}
@@ -187,7 +311,7 @@ export default function AdminLaporanPage() {
             <div className="flex gap-2 pb-0.5">
               <button onClick={applyFilter} disabled={!isDirty}
                 className="px-5 py-2 text-xs font-bold rounded-lg bg-primary text-on-primary hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
-                Terapkan Filter
+                Apply Filter
               </button>
               {isFiltered && (
                 <button onClick={resetFilter}
@@ -213,8 +337,8 @@ export default function AdminLaporanPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
             {[
               { icon:'payments', label:'Total Revenue', badge:'Revenue', value: loadingMain?'...':fmt(stats?.revenue??0), color:'text-emerald-400', bg:'bg-emerald-500/10' },
-              { icon:'calendar_month', label:'Total Booking', badge:'Booking', value: loadingMain?'...':String(stats?.total_booking??0), color:'text-sky-400', bg:'bg-sky-500/10' },
-              { icon:'check_circle', label:'Booking Selesai', badge:'Selesai', value: loadingMain?'...':String(stats?.completed??0), color:'text-primary', bg:'bg-primary/10' },
+              { icon:'calendar_month', label:'Total Bookings', badge:'Booking', value: loadingMain?'...':String(stats?.total_booking??0), color:'text-sky-400', bg:'bg-sky-500/10' },
+              { icon:'check_circle', label:'Booking Completed', badge:'Completed', value: loadingMain?'...':String(stats?.completed??0), color:'text-primary', bg:'bg-primary/10' },
               { icon:'group', label:'Total Member', badge:'Member', value: loadingMain?'...':String(stats?.total_members??0), color:'text-violet-400', bg:'bg-violet-500/10' },
             ].map(c => (
               <div key={c.label} className="bg-surface-container-low p-6 rounded-xl">
@@ -233,18 +357,18 @@ export default function AdminLaporanPage() {
             <div className="col-span-12 lg:col-span-8 bg-surface-container-low p-8 rounded-xl border border-outline-variant/5">
               <div className="mb-6">
                 <h4 className="text-lg font-headline font-bold text-white">
-                  {chartMode === 'daily' ? 'Revenue Harian' : 'Revenue Per Bulan'}
+                  {chartMode === 'daily' ? 'Daily Revenue' : 'Monthly Revenue'}
                 </h4>
                 <p className="text-xs text-neutral-500">
-                  {chartMode === 'daily' ? 'Bar hari ini berwarna kuning.' : 'Semua waktu — pilih bulan untuk lihat harian.'}
+                  {chartMode === 'daily' ? 'Today is highlighted in yellow.' : 'All time — select month for daily view.'}
                 </p>
               </div>
               {loadingMain ? (
                 <div className="h-56 flex items-center justify-center text-secondary text-sm">
-                  <span className="material-symbols-outlined animate-spin mr-2">sync</span>Memuat grafik...
+                  <span className="material-symbols-outlined animate-spin mr-2">sync</span>Loading chart...
                 </div>
               ) : chart.length === 0 ? (
-                <div className="h-56 flex items-center justify-center text-neutral-500 text-sm">Belum ada data.</div>
+                <div className="h-56 flex items-center justify-center text-neutral-500 text-sm">No data available.</div>
               ) : (
                 <>
                   <div className="relative h-52 w-full flex items-end gap-0.5 px-1">
@@ -281,11 +405,11 @@ export default function AdminLaporanPage() {
                   <div className="flex gap-3 mt-3 text-[10px] text-neutral-500">
                     <span className="flex items-center gap-1">
                       <span className="w-3 h-3 rounded bg-yellow-400 inline-block"/>
-                      {chartMode === 'daily' ? 'Hari ini' : 'Bulan ini'}
+                      {chartMode === 'daily' ? 'Today' : 'This Month'}
                     </span>
                     <span className="flex items-center gap-1">
                       <span className="w-3 h-3 rounded bg-surface-container-highest inline-block"/>
-                      Lainnya
+                      Others
                     </span>
                   </div>
                 </>
@@ -293,11 +417,11 @@ export default function AdminLaporanPage() {
             </div>
 
             <div className="col-span-12 lg:col-span-4 bg-surface-container-low p-8 rounded-xl border border-outline-variant/5">
-              <h4 className="text-lg font-headline font-bold text-white mb-6">Layanan Populer</h4>
+              <h4 className="text-lg font-headline font-bold text-white mb-6">Popular Services</h4>
               {loadingMain ? (
-                <div className="flex items-center justify-center h-40 text-secondary text-sm"><span className="material-symbols-outlined animate-spin mr-2">sync</span>Memuat...</div>
+                <div className="flex items-center justify-center h-40 text-secondary text-sm"><span className="material-symbols-outlined animate-spin mr-2">sync</span>Loading...</div>
               ) : services.length === 0 ? (
-                <p className="text-neutral-500 text-sm mt-4">Belum ada data layanan.</p>
+                <p className="text-neutral-500 text-sm mt-4">No services data.</p>
               ) : (
                 <div className="space-y-5">
                   {services.map((s,i) => (
@@ -320,19 +444,19 @@ export default function AdminLaporanPage() {
           {/* ── Barber Performance ── */}
           <div className="bg-surface-container-low rounded-xl overflow-hidden mb-8">
             <div className="px-8 py-5 border-b border-outline-variant/10 flex justify-between items-center">
-              <h4 className="text-lg font-headline font-bold text-white">Performa Barber</h4>
+              <h4 className="text-lg font-headline font-bold text-white">Barber Performance</h4>
               <div className="flex items-center gap-2 text-xs text-secondary font-medium"><span className="w-2 h-2 rounded-full bg-primary"/>Top Performer</div>
             </div>
             {loadingMain ? (
-              <div className="py-12 text-center text-secondary text-sm"><span className="material-symbols-outlined animate-spin mr-2">sync</span>Memuat...</div>
+              <div className="py-12 text-center text-secondary text-sm"><span className="material-symbols-outlined animate-spin mr-2">sync</span>Loading...</div>
             ) : barbers.length === 0 ? (
-              <div className="py-12 text-center text-neutral-500 text-sm">Belum ada data performa barber.</div>
+              <div className="py-12 text-center text-neutral-500 text-sm">No barber performance data.</div>
             ) : (
               <table className="w-full text-left">
                 <thead className="bg-surface-container-high/50 text-neutral-500 text-[10px] uppercase tracking-widest">
                   <tr>
                     <th className="px-8 py-4 font-bold">Barber</th>
-                    <th className="px-8 py-4 font-bold">Sesi</th>
+                    <th className="px-8 py-4 font-bold">Sessions</th>
                     <th className="px-8 py-4 font-bold text-right">Revenue</th>
                   </tr>
                 </thead>
@@ -348,7 +472,7 @@ export default function AdminLaporanPage() {
                           <span className="font-bold text-white">{b.name}</span>
                         </div>
                       </td>
-                      <td className="px-8 py-4 text-neutral-400">{b.total_sessions} sesi</td>
+                      <td className="px-8 py-4 text-neutral-400">{b.total_sessions} sessions</td>
                       <td className="px-8 py-4 text-right font-bold text-white">{fmtFull(b.total_revenue)}</td>
                     </tr>
                   ))}
@@ -357,12 +481,12 @@ export default function AdminLaporanPage() {
             )}
           </div>
 
-          {/* ── Daftar Transaksi ── */}
+          {/* ── Register Transaksi ── */}
           <div className="bg-surface-container-low rounded-xl overflow-hidden">
             <div className="px-8 py-5 border-b border-outline-variant/10 flex justify-between items-center">
               <div>
-                <h4 className="text-lg font-headline font-bold text-white">Daftar Transaksi</h4>
-                {totalRows > 0 && <p className="text-xs text-neutral-500 mt-0.5">{totalRows} transaksi</p>}
+                <h4 className="text-lg font-headline font-bold text-white">Transaction Register</h4>
+                {totalRows > 0 && <p className="text-xs text-neutral-500 mt-0.5">{totalRows} transactions</p>}
               </div>
               {isFiltered && (
                 <div className="flex flex-wrap gap-1">
@@ -375,20 +499,20 @@ export default function AdminLaporanPage() {
               <table className="w-full text-left">
                 <thead className="bg-surface-container-high/50 text-neutral-500 text-[10px] uppercase tracking-widest">
                   <tr>
-                    <th className="px-6 py-4 font-bold">Kode</th>
+                    <th className="px-6 py-4 font-bold">Code</th>
                     <th className="px-6 py-4 font-bold">Customer</th>
                     <th className="px-6 py-4 font-bold">Barber</th>
-                    <th className="px-6 py-4 font-bold">Layanan</th>
-                    <th className="px-6 py-4 font-bold">Tanggal</th>
+                    <th className="px-6 py-4 font-bold">Service</th>
+                    <th className="px-6 py-4 font-bold">Date</th>
                     <th className="px-6 py-4 font-bold">Status</th>
                     <th className="px-6 py-4 font-bold text-right">Total</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm divide-y divide-outline-variant/10">
                   {loadingTable ? (
-                    <tr><td colSpan={7} className="px-6 py-10 text-center text-secondary text-sm"><span className="material-symbols-outlined animate-spin mr-2">sync</span>Memuat...</td></tr>
+                    <tr><td colSpan={7} className="px-6 py-10 text-center text-secondary text-sm"><span className="material-symbols-outlined animate-spin mr-2">sync</span>Loading...</td></tr>
                   ) : bookings.length === 0 ? (
-                    <tr><td colSpan={7} className="px-6 py-10 text-center text-neutral-500 text-sm">Tidak ada transaksi{isFiltered?' untuk filter ini':' saat ini'}.</td></tr>
+                    <tr><td colSpan={7} className="px-6 py-10 text-center text-neutral-500 text-sm">No transactions{isFiltered?' for this filter':' right now'}.</td></tr>
                   ) : bookings.map(b => (
                     <tr key={b.id} className="hover:bg-neutral-800/20 transition-colors">
                       <td className="px-6 py-4"><span className="font-mono text-xs text-primary">{b.unique_code}</span></td>
@@ -408,7 +532,7 @@ export default function AdminLaporanPage() {
             </div>
             {lastPage > 1 && (
               <div className="px-8 py-4 border-t border-outline-variant/10 flex items-center justify-between np">
-                <p className="text-xs text-neutral-500">Halaman {page} dari {lastPage}</p>
+                <p className="text-xs text-neutral-500">Page {page} of {lastPage}</p>
                 <div className="flex gap-2">
                   <button disabled={page<=1} onClick={()=>setPage(p=>Math.max(1,p-1))} className="px-3 py-1 text-xs rounded border border-outline-variant/30 text-secondary hover:border-primary hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed">← Prev</button>
                   <button disabled={page>=lastPage} onClick={()=>setPage(p=>Math.min(lastPage,p+1))} className="px-3 py-1 text-xs rounded border border-outline-variant/30 text-secondary hover:border-primary hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed">Next →</button>
@@ -439,8 +563,10 @@ export default function AdminLaporanPage() {
             </div>
           </div>
           <div className="text-right">
-            <h2 className="text-on-surface font-serif text-3xl font-light italic">Laporan Performa</h2>
-            <p className="text-secondary font-medium tracking-tight mt-1">Periode: {appliedMonth || 'Semua Waktu'}</p>
+            <h2 className="text-on-surface font-serif text-3xl font-light italic">Performance Report</h2>
+            <p className="text-secondary font-medium tracking-tight mt-1">
+              Period: {appliedStart && appliedEnd ? `${appliedStart} to ${appliedEnd}` : appliedMonth || 'All Time'}
+            </p>
           </div>
         </header>
 
@@ -480,20 +606,20 @@ export default function AdminLaporanPage() {
           <section className="mb-12">
             <div className="flex items-center gap-4 mb-8">
               <span className="h-[1px] w-8 bg-primary"></span>
-              <h3 className="font-serif text-xl font-bold tracking-tight uppercase text-primary">Daftar Transaksi Terbaru</h3>
+              <h3 className="font-serif text-xl font-bold tracking-tight uppercase text-primary">Recent Transactions</h3>
             </div>
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-surface-container-highest/50">
-                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-secondary font-black">Kode</th>
-                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-secondary font-black">Layanan</th>
-                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-secondary font-black">Kapster</th>
-                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-secondary font-black">Pelanggan</th>
-                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-secondary font-black text-right">Pendapatan</th>
+                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-secondary font-black">Code</th>
+                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-secondary font-black">Service</th>
+                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-secondary font-black">Barber</th>
+                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-secondary font-black">Customer</th>
+                  <th className="px-6 py-4 text-[11px] uppercase tracking-widest text-secondary font-black text-right">Revenue</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
-                {bookings.slice(0, 10).map((b) => (
+                {(printBookings.length > 0 ? printBookings : bookings).map((b) => (
                   <tr key={b.id} className="group hover:bg-surface-container-low transition-colors">
                     <td className="px-6 py-5 text-sm font-mono text-primary">{b.unique_code}</td>
                     <td className="px-6 py-5 text-sm font-bold text-on-surface">{b.service_name}</td>
@@ -503,13 +629,21 @@ export default function AdminLaporanPage() {
                   </tr>
                 ))}
               </tbody>
+              <tfoot className="border-t-2 border-primary/20">
+                <tr className="bg-surface-container-low">
+                  <td colSpan={4} className="px-6 py-4 text-right font-bold text-secondary uppercase tracking-widest text-xs">Total Revenue</td>
+                  <td className="px-6 py-4 text-right font-black text-primary text-lg">
+                    {fmtFull((printBookings.length > 0 ? printBookings : bookings).reduce((sum, b) => sum + Number(b.total_amount || 0), 0))}
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           </section>
 
           {/* Visual Insight */}
           <div className="grid grid-cols-2 gap-8 mt-12">
             <div className="bg-surface-container-low p-8">
-              <p className="text-secondary text-[11px] uppercase tracking-widest mb-6">Layanan Terpopuler</p>
+              <p className="text-secondary text-[11px] uppercase tracking-widest mb-6">Popular Services</p>
               <div className="space-y-4">
                 {services.slice(0, 3).map((s, idx) => (
                   <div key={idx} className="flex justify-between items-center">

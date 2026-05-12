@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Barber;
+use App\Models\Booking;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
@@ -32,7 +33,7 @@ class BarberController extends Controller
 
         $barber = Barber::create($validated);
 
-        return response()->json(['message' => 'Kapster berhasil ditambahkan', 'data' => $barber], 201);
+        return response()->json(['message' => 'Barber berhasil ditambahkan', 'data' => $barber], 201);
     }
 
     public function show($id)
@@ -66,7 +67,7 @@ class BarberController extends Controller
         $barber->update($validated);
 
         if ($validated['status'] === 'Absent' && $oldStatus !== 'Absent') {
-            $pendingBookings = \App\Models\Booking::where('barber_id', $barber->id)
+            $pendingBookings = Booking::where('barber_id', $barber->id)
                 ->whereIn('status', ['pending', 'arrived', 'processing'])
                 ->get();
             
@@ -77,7 +78,7 @@ class BarberController extends Controller
             }
         }
 
-        return response()->json(['message' => 'Kapster berhasil diperbarui', 'data' => $barber]);
+        return response()->json(['message' => 'Barber berhasil diperbarui', 'data' => $barber]);
     }
 
     public function destroy($id)
@@ -91,7 +92,7 @@ class BarberController extends Controller
 
         $barber->delete();
 
-        return response()->json(['message' => 'Kapster berhasil dihapus']);
+        return response()->json(['message' => 'Barber berhasil dihapus']);
     }
 
     private function sendRescheduleNotification($booking, $barberName)
@@ -103,13 +104,14 @@ class BarberController extends Controller
         if (!$phone) return;
         if (substr($phone, 0, 1) === '0') $phone = '62' . substr($phone, 1);
 
-        $rescheduleLink = "http://localhost:5173/reschedule/" . $booking->unique_code;
+        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+        $rescheduleLink = rtrim($frontendUrl, '/') . "/reschedule/" . $booking->unique_code;
 
-        $message = "Halo *{$name}*!\n\n";
-        $message .= "Mohon maaf, kapster *{$barberName}* yang Anda pilih untuk booking *{$booking->unique_code}* saat ini berhalangan hadir.\n\n";
-        $message .= "Silakan lakukan penjadwalan ulang (Reschedule) atau pilih kapster lain secara GRATIS melalui link berikut:\n\n";
+        $message = "Hello *{$name}*!\n\n";
+        $message .= "We apologize, but our barber *{$barberName}* that you selected for booking *{$booking->unique_code}* is currently unavailable to attend.\n\n";
+        $message .= "Please reschedule your appointment or select another barber for FREE via the following link:\n\n";
         $message .= "{$rescheduleLink}\n\n";
-        $message .= "Terima kasih atas pengertian Anda. 🙏";
+        $message .= "Thank you for your understanding. 🙏";
 
         $fonnteToken = env('FONNTE_TOKEN') ?? config('services.fonnte.token');
         if (!$fonnteToken) return;

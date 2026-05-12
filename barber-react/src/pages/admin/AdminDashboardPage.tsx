@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import LoadingScreen from '../../components/LoadingScreen'
 import AlertModal from '../../components/AlertModal'
 
-const API_BASE = 'http://localhost:8000/api'
+const API_BASE = import.meta.env.VITE_API_URL
 
 interface DashboardStats {
   total_today: number
@@ -35,11 +35,11 @@ function formatRupiah(amount: number): string {
 
 function StatusBadge({ status }: { status: Booking['status'] }) {
   const map: Record<string, { label: string; className: string }> = {
-    pending:    { label: 'Menunggu',  className: 'text-zinc-400 bg-zinc-800' },
-    arrived:    { label: 'Hadir',     className: 'text-blue-400 bg-blue-400/10 border border-blue-400/20' },
-    processing: { label: 'Diproses', className: 'text-primary bg-primary/10 border border-primary/20' },
-    completed:  { label: 'Selesai',  className: 'text-green-400 bg-green-400/10 border border-green-400/20' },
-    cancelled:  { label: 'Batal',    className: 'text-red-400 bg-red-400/10' },
+    pending:    { label: 'Waiting',  className: 'text-zinc-400 bg-zinc-800' },
+    arrived:    { label: 'Arrived',     className: 'text-blue-400 bg-blue-400/10 border border-blue-400/20' },
+    processing: { label: 'Processing', className: 'text-primary bg-primary/10 border border-primary/20' },
+    completed:  { label: 'Completed',  className: 'text-green-400 bg-green-400/10 border border-green-400/20' },
+    cancelled:  { label: 'Cancel',    className: 'text-red-400 bg-red-400/10' },
   }
   const s = map[status] ?? map.pending
   return (
@@ -77,8 +77,8 @@ export default function AdminDashboardPage() {
 
   const closeAlert = () => setAlertConfig(prev => ({ ...prev, isOpen: false }));
   
-  const dateStr = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-  const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB'
+  const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) + ' WIB'
   
   const getToken = () => localStorage.getItem('auth_token')
 
@@ -92,7 +92,7 @@ export default function AdminDashboardPage() {
       const json = await res.json()
       setStats(json.data)
     } catch {
-      setError('Gagal memuat statistik.')
+      setError('Failed memuat statistik.')
     } finally {
       setLoadingStats(false)
     }
@@ -108,7 +108,7 @@ export default function AdminDashboardPage() {
       const json = await res.json()
       setBookings(json.data ?? [])
     } catch {
-      setError('Gagal memuat data antrean.')
+      setError('Failed to load data antrean.')
     } finally {
       setLoadingQueue(false)
     }
@@ -135,7 +135,7 @@ export default function AdminDashboardPage() {
       // Refresh data setelah update
       await Promise.all([fetchStats(), fetchQueue()])
     } catch {
-      setAlertConfig({ isOpen: true, message: 'Gagal mengupdate status.', type: 'error' })
+      setAlertConfig({ isOpen: true, message: 'Failed mengupdate status.', type: 'error' })
     } finally {
       setUpdatingId(null)
     }
@@ -143,7 +143,7 @@ export default function AdminDashboardPage() {
 
   // 3. SEMBUNYIKAN STATUS 'CANCELLED' DARI TABEL FE
   const filteredBookings = bookings.filter((b) => {
-    if (b.status === 'cancelled') return false // Otomatis hilangkan yang batal
+    if (b.status === 'cancelled') return false // Automatically remove cancelled
 
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
@@ -172,11 +172,11 @@ export default function AdminDashboardPage() {
       <header className="flex justify-between items-center px-10 py-8">
         <div>
           <h2 className="text-3xl font-headline font-bold text-on-surface">Halo, Admin</h2>
-          <p className="text-secondary text-sm">Selamat datang kembali di Atelier Manajemen.</p>
+          <p className="text-secondary text-sm">Welcome back to the Atelier Management.</p>
 
           <div className="text-left mt-4">
             <span className="text-[10px] uppercase tracking-[0.3em] text-[#eac249] font-bold block mb-1">
-              Status Hari Ini
+              Today's Status
             </span>
             <p className="text-on-surface font-mono font-medium capitalize">{dateStr} | {timeStr}</p>
           </div>
@@ -192,7 +192,7 @@ export default function AdminDashboardPage() {
             </span>
             <input
               className="bg-surface-container-highest border-none rounded-lg pl-12 pr-6 py-3 w-72 text-sm focus:ring-1 focus:ring-primary outline-none transition-all text-on-surface placeholder:text-outline-variant"
-              placeholder="Cari Kode Unik atau Nama..."
+              placeholder="Search Unique Code or Name..."
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -219,29 +219,29 @@ export default function AdminDashboardPage() {
         ) : (
           <>
             <div className="col-span-1 bg-surface-container-low p-6 rounded-xl border-l-2 border-primary">
-              <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">Total Antrean</p>
+              <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">Total Queue</p>
               <h3 className="text-4xl font-headline font-bold text-primary">{String(stats?.total_today ?? 0).padStart(2, '0')}</h3>
               <p className="text-[10px] text-on-surface-variant mt-2 flex items-center gap-1">
                 <span className="material-symbols-outlined text-sm">today</span>
-                <span>Booking hari ini</span>
+                <span>Bookings today</span>
               </p>
             </div>
 
             <div className="col-span-1 bg-surface-container-low p-6 rounded-xl">
-              <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">Sedang Proses</p>
+              <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">In Progress</p>
               <h3 className="text-4xl font-headline font-bold text-on-surface">{String(stats?.processing ?? 0).padStart(2, '0')}</h3>
-              <p className="text-[10px] text-on-surface-variant mt-2">Sedang dilayani kapster</p>
+              <p className="text-[10px] text-on-surface-variant mt-2">Being served by barber</p>
             </div>
 
             <div className="col-span-1 bg-surface-container-low p-6 rounded-xl">
-              <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">Selesai Hari Ini</p>
+              <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">Completed Today</p>
               <h3 className="text-4xl font-headline font-bold text-on-surface">{String(stats?.completed ?? 0).padStart(2, '0')}</h3>
-              <p className="text-[10px] text-on-surface-variant mt-2">Sesi telah selesai</p>
+              <p className="text-[10px] text-on-surface-variant mt-2">Session is completed</p>
             </div>
 
             <div className="col-span-1 bg-primary text-on-primary p-6 rounded-xl flex flex-col justify-between">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1">Estimasi Pendapatan</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1">Estimated Revenue</p>
                 <h3 className="text-2xl font-headline font-bold">{formatRupiah(stats?.revenue_today ?? 0)}</h3>
               </div>
               <span className="material-symbols-outlined self-end" style={{ fontVariationSettings: "'FILL' 1" }}>
@@ -256,10 +256,10 @@ export default function AdminDashboardPage() {
       <section className="px-10 mb-12">
         <div className="bg-surface-container-low rounded-2xl overflow-hidden">
           <div className="px-8 py-6 flex justify-between items-center">
-            <h3 className="text-xl font-headline font-bold">Daftar Antrean Hari Ini</h3>
+            <h3 className="text-xl font-headline font-bold">Today's Queue Register</h3>
             <div className="flex gap-2">
               {(['all', 'pending', 'processing'] as const).map((f) => {
-                const labels = { all: 'Semua', pending: 'Menunggu', processing: 'Diproses' }
+                const labels = { all: 'All', pending: 'Waiting', processing: 'Processing' }
                 return (
                   <button
                     key={f}
@@ -281,13 +281,13 @@ export default function AdminDashboardPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-surface-container-high/50 text-secondary text-[10px] uppercase tracking-widest">
-                  <th className="px-8 py-4 font-bold">No. / Kode</th>
-                  <th className="px-8 py-4 font-bold">Nama Pelanggan</th>
-                  <th className="px-8 py-4 font-bold">Layanan</th>
-                  <th className="px-8 py-4 font-bold">Kapster</th>
-                  <th className="px-8 py-4 font-bold">Jam</th>
+                  <th className="px-8 py-4 font-bold">No. / Code</th>
+                  <th className="px-8 py-4 font-bold">Customer Name</th>
+                  <th className="px-8 py-4 font-bold">Service</th>
+                  <th className="px-8 py-4 font-bold">Barber</th>
+                  <th className="px-8 py-4 font-bold">Time</th>
                   <th className="px-8 py-4 font-bold">Status</th>
-                  <th className="px-8 py-4 font-bold text-right">Aksi</th>
+                  <th className="px-8 py-4 font-bold text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -307,7 +307,7 @@ export default function AdminDashboardPage() {
                   <tr>
                     <td colSpan={7} className="px-8 py-16 text-center text-secondary text-sm">
                       <span className="material-symbols-outlined text-4xl block mb-2 text-outline">event_available</span>
-                      Tidak ada antrean untuk filter ini.
+                      No queue found for this filter.
                     </td>
                   </tr>
                 ) : (
@@ -332,7 +332,7 @@ export default function AdminDashboardPage() {
                       <td className="px-8 py-6">
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">
-                            {booking.barber_name !== 'Belum ditentukan'
+                            {booking.barber_name !== 'Unassigned'
                               ? booking.barber_name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
                               : '?'}
                           </div>
@@ -354,7 +354,7 @@ export default function AdminDashboardPage() {
                             disabled={updatingId === booking.id}
                             className="bg-blue-500/20 hover:bg-blue-500 border border-blue-500/30 text-blue-400 hover:text-white px-5 py-2 rounded-md text-xs font-bold transition-all active:scale-95 disabled:opacity-50"
                           >
-                            {updatingId === booking.id ? '...' : 'Hadir'}
+                            {updatingId === booking.id ? '...' : 'Arrived'}
                           </button>
                         )}
                         {booking.status === 'arrived' && (
@@ -363,7 +363,7 @@ export default function AdminDashboardPage() {
                             disabled={updatingId === booking.id}
                             className="bg-primary text-on-primary px-5 py-2 rounded-md text-xs font-bold transition-all active:scale-95 disabled:opacity-50"
                           >
-                            {updatingId === booking.id ? '...' : 'Proses'}
+                            {updatingId === booking.id ? '...' : 'Process'}
                           </button>
                         )}
                         {booking.status === 'processing' && (
@@ -372,7 +372,7 @@ export default function AdminDashboardPage() {
                             disabled={updatingId === booking.id}
                             className="bg-green-500/20 hover:bg-green-500 border border-green-500/30 text-green-400 hover:text-white px-5 py-2 rounded-md text-xs font-bold transition-all active:scale-95 disabled:opacity-50"
                           >
-                            {updatingId === booking.id ? '...' : 'Selesai'}
+                            {updatingId === booking.id ? '...' : 'Completed'}
                           </button>
                         )}
                         {(booking.status === 'completed' || booking.status === 'cancelled') && (
@@ -388,7 +388,7 @@ export default function AdminDashboardPage() {
 
           <div className="p-6 bg-surface-container-lowest/50 flex justify-between items-center">
             <p className="text-xs text-secondary">
-              Menampilkan {currentBookings.length} dari {filteredBookings.length} antrean hari ini
+              Showing {currentBookings.length} of {filteredBookings.length} queues today
             </p>
             
             {/* Pagination Controls */}
@@ -428,10 +428,10 @@ export default function AdminDashboardPage() {
       {/* Footer */}
       <footer className="w-full py-12 flex flex-col items-center gap-6 bg-[#131313] border-t border-white/5">
         <p className="font-body text-xs uppercase tracking-widest text-secondary text-center">
-          © 2024 The Modern Artisan Barbershop. Presisi dalam setiap potongan.
+          © 2024 The Modern Artisan Barbershop. Precision in every cut.
         </p>
         <div className="flex gap-8">
-          {['Tentang Kami', 'Kebijakan Privasi', 'Syarat & Ketentuan', 'Hubungi Kami'].map((link) => (
+          {['About Us', 'Privacy Policy', 'Terms & Conditions', 'Contact Us'].map((link) => (
             <a key={link} href="#" className="font-body text-xs uppercase tracking-widest text-secondary hover:text-white transition-colors">
               {link}
             </a>
