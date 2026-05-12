@@ -13,7 +13,7 @@ class MemberController extends Controller
     public function index(Request $request)
     {
         if ($request->user()->role !== 'admin') {
-            return response()->json(['message' => 'Akses ditolak. Anda bukan Admin.'], 403);
+            return response()->json(['message' => 'Access denied. You are not an Admin.'], 403);
         }
 
         // Statistik Member

@@ -14,7 +14,7 @@ class ExpireOldBookings extends Command
      */
     protected $signature = 'bookings:expire';
 
-    protected $description = 'Tandai booking yang tanggalnya sudah lewat dan belum dibayar menjadi expired';
+    protected $description = 'Mark bookings that are past due date and unpaid as expired';
 
     public function handle(): void
     {
@@ -27,7 +27,7 @@ class ExpireOldBookings extends Command
             ->where('payment_status', 'unpaid')
             ->update(['payment_status' => 'expired']);
 
-        $this->info("Berhasil menandai {$count} booking sebagai expired.");
-        Log::info("[bookings:expire] {$count} booking diubah ke status expired pada {$today}");
+        $this->info("Successfully marked {$count} bookings as expired.");
+        Log::info("[bookings:expire] {$count} bookings changed to expired status on {$today}");
     }
 }

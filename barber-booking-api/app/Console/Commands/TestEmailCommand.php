@@ -6,6 +6,9 @@ use Illuminate\Console\Command;
 use App\Models\Booking;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\File;
+use App\Mail\BookingTicketMail;
+use Exception;
 
 class TestEmailCommand extends Command
 {
@@ -51,8 +54,8 @@ class TestEmailCommand extends Command
         try {
             // Generate ticket image
             $ticketsDir = storage_path('app/public/tickets');
-            if (!\Illuminate\Support\Facades\File::exists($ticketsDir)) {
-                \Illuminate\Support\Facades\File::makeDirectory($ticketsDir, 0755, true);
+            if (!File::exists($ticketsDir)) {
+                File::makeDirectory($ticketsDir, 0755, true);
             }
 
             $fileName = 'ticket_' . $booking->unique_code . '_' . time() . '.png';
@@ -63,13 +66,13 @@ class TestEmailCommand extends Command
             $this->info("✓ Tiket image berhasil dibuat: {$fileName}");
 
             // Send email
-            Mail::to($email)->send(new \App\Mail\BookingTicketMail($booking, $filePath));
+            Mail::to($email)->send(new BookingTicketMail($booking, $filePath));
             
             $this->line("");
             $this->info("✅ Email berhasil dikirim ke {$email}!");
             Log::info("TEST: Email berhasil dikirim ke {$email} untuk booking {$booking->unique_code}");
             
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->line("");
             $this->error("❌ Gagal mengirim email!");
             $this->error("Error: " . $e->getMessage());

@@ -36,7 +36,7 @@ const ServicesModal = ({ isOpen, onClose, services }: ServicesModalProps) => {
   };
 
   const formatRupiah = (price: number | string) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(price));
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(price));
   };
 
   return (
@@ -116,7 +116,7 @@ const ServicesModal = ({ isOpen, onClose, services }: ServicesModalProps) => {
               </button>
             ))}
             {services.length === 0 && (
-              <p className="text-secondary text-center py-8">Belum ada layanan tersedia.</p>
+              <p className="text-secondary text-center py-8">No services available.</p>
             )}
           </div>
           

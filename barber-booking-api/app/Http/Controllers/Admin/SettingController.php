@@ -38,7 +38,7 @@ class SettingController extends Controller
     public function show(Request $request)
     {
         if ($request->user()->role !== 'admin') {
-            return response()->json(['message' => 'Akses ditolak. Anda bukan Admin.'], 403);
+            return response()->json(['message' => 'Access denied. You are not an Admin.'], 403);
         }
 
         $settings = BusinessSetting::first();
@@ -66,7 +66,7 @@ class SettingController extends Controller
     public function update(Request $request)
     {
         if ($request->user()->role !== 'admin') {
-            return response()->json(['message' => 'Akses ditolak. Anda bukan Admin.'], 403);
+            return response()->json(['message' => 'Access denied. You are not an Admin.'], 403);
         }
 
         $validated = $request->validate([
@@ -88,7 +88,7 @@ class SettingController extends Controller
 
         return response()->json([
             'status'  => 'success',
-            'message' => 'Pengaturan berhasil diperbarui.',
+            'message' => 'Settings successfully updated.',
             'data'    => $settings->fresh(),
         ]);
     }

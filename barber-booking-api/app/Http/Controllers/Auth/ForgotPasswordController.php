@@ -8,6 +8,7 @@ use App\Models\PasswordResetCode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Exception;
 
 class ForgotPasswordController extends Controller
 {
@@ -30,7 +31,7 @@ class ForgotPasswordController extends Controller
             ], 404);
         }
 
-        // Hapus kode lama jika ada
+        // Delete kode lama jika ada
         PasswordResetCode::where('email', $email)->delete();
 
         // Buat kode 6 digit baru
@@ -50,22 +51,22 @@ class ForgotPasswordController extends Controller
                     <div style='text-align: center; margin: 30px 0;'>
                         <span style='background-color: #f9f9f9; border: 1px dashed #eac249; font-size: 32px; font-weight: bold; letter-spacing: 5px; padding: 10px 20px; color: #131313; font-family: monospace;'>{$code}</span>
                     </div>
-                    <p style='color: #666; font-size: 12px;'>Kode verifikasi ini berlaku selama 15 menit. Jika Anda tidak meminta penyetelan ulang kata sandi ini, silakan abaikan email ini.</p>
+                    <p style='color: #666; font-size: 12px;'>Code verifikasi ini berlaku selama 15 menit. Jika Anda tidak meminta penyetelan ulang kata sandi ini, silakan abaikan email ini.</p>
                 </div>
             ", function ($message) use ($email) {
                 $message->to($email)
-                        ->subject('Kode Verifikasi Atur Ulang Kata Sandi - The Modern Artisan');
+                        ->subject('Code Verifikasi Reset Password - The Modern Artisan');
             });
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Gagal mengirim email verifikasi. Periksa konfigurasi email server.'
+                'message' => 'Failed mengirim email verifikasi. Periksa konfigurasi email server.'
             ], 500);
         }
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Kode verifikasi telah berhasil dikirim ke email Anda.'
+            'message' => 'Code verifikasi telah berhasil dikirim ke email Anda.'
         ]);
     }
 
@@ -76,8 +77,8 @@ class ForgotPasswordController extends Controller
             'code' => 'required|string|size:6',
         ], [
             'email.required' => 'Email wajib diisi.',
-            'code.required' => 'Kode verifikasi wajib diisi.',
-            'code.size' => 'Kode verifikasi harus 6 digit.',
+            'code.required' => 'Code verifikasi wajib diisi.',
+            'code.size' => 'Code verifikasi harus 6 digit.',
         ]);
 
         $reset = PasswordResetCode::where('email', $request->email)
@@ -87,7 +88,7 @@ class ForgotPasswordController extends Controller
         if (!$reset) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Kode verifikasi yang Anda masukkan salah.'
+                'message' => 'Code verifikasi yang Anda masukkan salah.'
             ], 400);
         }
 
@@ -95,13 +96,13 @@ class ForgotPasswordController extends Controller
             $reset->delete();
             return response()->json([
                 'status' => 'error',
-                'message' => 'Kode verifikasi telah kadaluarsa. Silakan minta kode baru.'
+                'message' => 'Code verifikasi telah kadaluarsa. Silakan minta kode baru.'
             ], 400);
         }
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Kode verifikasi cocok.'
+            'message' => 'Code verifikasi cocok.'
         ]);
     }
 
@@ -113,10 +114,10 @@ class ForgotPasswordController extends Controller
             'password' => 'required|string|min:6|confirmed',
         ], [
             'email.required' => 'Email wajib diisi.',
-            'code.required' => 'Kode verifikasi wajib diisi.',
+            'code.required' => 'Code verifikasi wajib diisi.',
             'password.required' => 'Kata sandi baru wajib diisi.',
             'password.min' => 'Kata sandi baru minimal harus 6 karakter.',
-            'password.confirmed' => 'Konfirmasi kata sandi tidak cocok.',
+            'password.confirmed' => 'Confirmation kata sandi tidak cocok.',
         ]);
 
         $reset = PasswordResetCode::where('email', $request->email)
@@ -127,7 +128,7 @@ class ForgotPasswordController extends Controller
             if ($reset) $reset->delete();
             return response()->json([
                 'status' => 'error',
-                'message' => 'Kode verifikasi tidak valid atau telah kadaluarsa.'
+                'message' => 'Code verifikasi tidak valid atau telah kadaluarsa.'
             ], 400);
         }
 
@@ -142,7 +143,7 @@ class ForgotPasswordController extends Controller
         $user->password = Hash::make($request->password);
         $user->save();
 
-        // Hapus kode verifikasi dari DB setelah sukses
+        // Delete kode verifikasi of DB setelah sukses
         $reset->delete();
 
         return response()->json([

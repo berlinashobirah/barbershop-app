@@ -10,7 +10,7 @@ const ServicesSection = ({ onOpenServicesModal, services }: ServicesSectionProps
   const sideServices = services.length > 1 ? services.slice(1, 3) : [];
 
   const formatRupiah = (price: number | string) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(price));
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(price));
   };
 
   return (
@@ -18,10 +18,10 @@ const ServicesSection = ({ onOpenServicesModal, services }: ServicesSectionProps
       <div className="container mx-auto px-8">
         <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-4">
           <div className="max-w-xl">
-            <h2 className="font-headline text-4xl font-bold mb-4">Layanan Unggulan</h2>
+            <h2 className="font-headline text-4xl font-bold mb-4">Featured Services</h2>
             <div className="h-1 w-20 bg-primary mb-6"></div>
             <p className="text-secondary">
-              Kurasi perawatan pria terbaik untuk menonjolkan karakter dan kepercayaan diri Anda.
+              Curating the best men's grooming to highlight your character and confidence.
             </p>
           </div>
           <div className="text-primary font-headline italic text-xl">
@@ -54,7 +54,7 @@ const ServicesSection = ({ onOpenServicesModal, services }: ServicesSectionProps
                   onClick={onOpenServicesModal}
                   className="bg-primary/10 text-primary border border-primary/30 px-6 py-3 rounded-md font-bold hover:bg-primary hover:text-on-primary transition-all flex items-center gap-2 w-fit"
                 >
-                  Lihat Semua Layanan
+                  View All Services
                   <span className="material-symbols-outlined text-xl">grid_view</span>
                 </button>
               </div>

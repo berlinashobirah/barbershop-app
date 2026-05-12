@@ -32,7 +32,7 @@ const AdminMemberPage = () => {
   const fetchMembers = async () => {
     try {
       const token = localStorage.getItem('auth_token');
-      const res = await fetch('http://localhost:8000/api/admin/members', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/members`, {
         headers: { 
           Authorization: `Bearer ${token}`,
           Accept: 'application/json'
@@ -72,9 +72,9 @@ const AdminMemberPage = () => {
       {loading && <LoadingScreen />}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8">
         <div>
-          <h1 className="text-4xl font-headline font-bold text-on-surface mb-2">Kelola Member</h1>
+          <h1 className="text-4xl font-headline font-bold text-on-surface mb-2">Manage Members</h1>
           <p className="text-secondary max-w-md text-sm leading-relaxed">
-            Direktori komprehensif pelanggan setia The Modern Artisan. Kelola poin loyalitas dan pantau frekuensi kunjungan secara real-time.
+            Comprehensive directory of loyal customers of The Modern Artisan. Manage loyalty points and monitor visit frequency in real-time.
           </p>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
@@ -82,7 +82,7 @@ const AdminMemberPage = () => {
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
             <input 
               className="w-full bg-surface-container-highest border-none text-sm px-10 py-3 rounded-lg focus:ring-1 focus:ring-primary placeholder:text-on-surface-variant/50" 
-              placeholder="Cari nama atau no. HP..." 
+              placeholder="Search Unique Code or Name..." 
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -100,7 +100,7 @@ const AdminMemberPage = () => {
           <div className="flex justify-between items-start mb-4">
             <span className="material-symbols-outlined text-primary bg-primary/10 p-2 rounded-lg">stars</span>
           </div>
-          <p className="text-secondary text-xs uppercase tracking-tighter mb-1">Total Membership</p>
+          <p className="text-secondary text-xs uppercase tracking-tighter mb-1">Total Memberships</p>
           <p className="text-2xl font-headline font-bold">{loading ? '...' : summary.total_members}</p>
         </div>
         
@@ -108,7 +108,7 @@ const AdminMemberPage = () => {
           <div className="flex justify-between items-start mb-4">
             <span className="material-symbols-outlined text-secondary bg-surface-container-high p-2 rounded-lg">event_available</span>
           </div>
-          <p className="text-secondary text-xs uppercase tracking-tighter mb-1">Kunjungan Selesai Hari Ini</p>
+          <p className="text-secondary text-xs uppercase tracking-tighter mb-1">Visits Completed Today</p>
           <p className="text-2xl font-headline font-bold">{loading ? '...' : summary.today_visits}</p>
         </div>
       </div>
@@ -119,11 +119,11 @@ const AdminMemberPage = () => {
             <thead>
               <tr className="bg-surface-container-high/50 border-b border-outline-variant/5">
                 <th className="p-4 font-headline italic text-on-surface-variant font-medium">Profile</th>
-                <th className="p-4 font-headline italic text-on-surface-variant font-medium">Nama Member</th>
-                <th className="p-4 font-headline italic text-on-surface-variant font-medium">Kontak</th>
-                <th className="p-4 font-headline italic text-on-surface-variant font-medium">Bergabung</th>
-                <th className="p-4 font-headline italic text-on-surface-variant font-medium text-center">Poin</th>
-                <th className="p-4 font-headline italic text-on-surface-variant font-medium text-center">Total Kunjungan</th>
+                <th className="p-4 font-headline italic text-on-surface-variant font-medium">Member Name</th>
+                <th className="p-4 font-headline italic text-on-surface-variant font-medium">Contact</th>
+                <th className="p-4 font-headline italic text-on-surface-variant font-medium">Joined</th>
+                <th className="p-4 font-headline italic text-on-surface-variant font-medium text-center">Points</th>
+                <th className="p-4 font-headline italic text-on-surface-variant font-medium text-center">Total Visits</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant/10">
@@ -136,7 +136,7 @@ const AdminMemberPage = () => {
               ) : currentMembers.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-secondary italic">
-                    Tidak ada member ditemukan.
+                    No members found.
                   </td>
                 </tr>
               ) : (
@@ -145,7 +145,7 @@ const AdminMemberPage = () => {
                     <td className="px-6 py-6 text-center">
                       <div className="w-10 h-10 rounded-full mx-auto overflow-hidden shrink-0 border border-primary/20 bg-surface-container-highest flex items-center justify-center text-primary font-bold">
                         {member.profile_photo ? (
-                          <img src={`http://localhost:8000${member.profile_photo}`} alt={member.name} className="w-full h-full object-cover" />
+                          <img src={`${import.meta.env.VITE_BASE_URL}${member.profile_photo}`} alt={member.name} className="w-full h-full object-cover" />
                         ) : (
                           member.name.charAt(0).toUpperCase()
                         )}
@@ -161,17 +161,17 @@ const AdminMemberPage = () => {
                       </div>
                     </td>
                     <td className="px-6 py-6">
-                      <p className="text-[11px] text-on-surface-variant/60">{new Date(member.created_at).toLocaleDateString('id-ID')}</p>
+                      <p className="text-[11px] text-on-surface-variant/60">{new Date(member.created_at).toLocaleDateString('en-US')}</p>
                     </td>
                     <td className="px-6 py-6 text-center">
                       <span className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold tracking-widest">
-                        {member.points.toLocaleString('id-ID')} PTS
+                        {member.points.toLocaleString('en-US')} PTS
                       </span>
                     </td>
                     <td className="px-6 py-6 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <span className="text-sm font-bold text-on-surface">{member.total_visits}</span>
-                        <span className="text-[10px] text-on-surface-variant/40 italic">kunjungan</span>
+                        <span className="text-[10px] text-on-surface-variant/40 italic">visits</span>
                       </div>
                     </td>
                   </tr>
@@ -184,7 +184,7 @@ const AdminMemberPage = () => {
         {!loading && (
           <div className="p-6 bg-surface-container-high/30 border-t border-outline-variant/5 flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-xs text-on-surface-variant">
-              Menampilkan {currentMembers.length} dari {filteredMembers.length} member
+              Showing {currentMembers.length} of {filteredMembers.length} member
             </p>
             
             {/* Pagination Controls */}

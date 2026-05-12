@@ -16,8 +16,8 @@ const AlertModal: React.FC<AlertModalProps> = ({
   type = 'info', 
   onClose,
   onConfirm,
-  confirmText = 'Ya',
-  cancelText = 'Batal'
+  confirmText = 'Yes',
+  cancelText = 'Cancel'
 }) => {
   if (!isOpen) return null;
 
@@ -45,7 +45,7 @@ const AlertModal: React.FC<AlertModalProps> = ({
             {getIcon()}
           </span>
           <h3 className="font-headline text-xl font-bold text-on-surface">
-            {onConfirm ? 'Konfirmasi' : (type === 'success' ? 'Berhasil' : type === 'error' ? 'Kesalahan' : 'Informasi')}
+            {onConfirm ? 'Confirmation' : (type === 'success' ? 'Success' : type === 'error' ? 'Error' : 'Information')}
           </h3>
           <p className="text-secondary font-body text-sm leading-relaxed">{message}</p>
           
@@ -72,7 +72,7 @@ const AlertModal: React.FC<AlertModalProps> = ({
               onClick={onClose}
               className="mt-4 w-full bg-[#2a2a2a] hover:bg-[#353534] text-on-surface font-bold py-3 px-6 rounded-lg transition-colors border border-outline-variant/50 uppercase tracking-widest text-xs"
             >
-              Tutup
+              Close
             </button>
           )}
         </div>

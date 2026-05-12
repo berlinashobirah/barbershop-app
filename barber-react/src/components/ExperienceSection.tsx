@@ -12,13 +12,13 @@ const ExperienceSection = () => {
           <div className="absolute -bottom-6 -right-6 bg-primary p-6 rounded-md hidden md:block">
             <p className="text-on-primary font-headline font-bold text-4xl">10+</p>
             <p className="text-on-primary text-xs uppercase tracking-tighter">
-              Tahun Pengalaman
+              Years of Experience
             </p>
           </div>
         </div>
         <div className="order-1 md:order-2">
           <h2 className="font-headline text-4xl font-bold mb-8 leading-tight">
-            Mengapa Memilih <br />
+            Why Choose <br />
             The Modern Artisan?
           </h2>
           <ul className="space-y-8">
@@ -32,9 +32,9 @@ const ExperienceSection = () => {
                 </span>
               </span>
               <div>
-                <h4 className="font-bold text-lg mb-1">Kapster Profesional</h4>
+                <h4 className="font-bold text-lg mb-1">Professional Barbers</h4>
                 <p className="text-secondary text-sm">
-                  Tim kami adalah seniman rambut bersertifikat dengan dedikasi tinggi pada detail.
+                  Our team consists of certified hair artists with high dedication to detail.
                 </p>
               </div>
             </li>
@@ -48,9 +48,9 @@ const ExperienceSection = () => {
                 </span>
               </span>
               <div>
-                <h4 className="font-bold text-lg mb-1">Suasana Eksklusif</h4>
+                <h4 className="font-bold text-lg mb-1">Exclusive Atmosphere</h4>
                 <p className="text-secondary text-sm">
-                  Nikmati interior bertema industrial-klasik yang tenang dan nyaman.
+                  Enjoy a calm and comfortable classic-industrial themed interior.
                 </p>
               </div>
             </li>
@@ -64,9 +64,9 @@ const ExperienceSection = () => {
                 </span>
               </span>
               <div>
-                <h4 className="font-bold text-lg mb-1">Produk Premium</h4>
+                <h4 className="font-bold text-lg mb-1">Premium Products</h4>
                 <p className="text-secondary text-sm">
-                  Kami hanya menggunakan pomade dan skin-care artisan terbaik untuk kesehatan kulit Anda.
+                  We only use the best artisan pomades and skin-care for your skin's health.
                 </p>
               </div>
             </li>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-const API_BASE = 'http://localhost:8000/api'
+const API_BASE = import.meta.env.VITE_API_URL
 
 interface Settings {
   shop_name: string
@@ -44,9 +44,9 @@ const LocationSection = () => {
           {/* Info */}
           <div className="max-w-xl">
             <span className="text-primary font-label uppercase tracking-widest text-sm mb-4 block">
-              Kunjungi Kami
+              Visit Us
             </span>
-            <h2 className="font-headline text-4xl font-bold mb-8">Lokasi Kami</h2>
+            <h2 className="font-headline text-4xl font-bold mb-8">Our Location</h2>
             <div className="space-y-6">
               <div className="flex gap-4 items-start">
                 <span className="material-symbols-outlined text-primary text-3xl">location_on</span>
@@ -76,7 +76,7 @@ const LocationSection = () => {
                 <div className="flex gap-4 items-center">
                   <span className="material-symbols-outlined text-primary text-3xl">schedule</span>
                   <div>
-                    <p className="text-[10px] text-neutral-500 uppercase tracking-widest font-bold mb-0.5">Jam Operasional</p>
+                    <p className="text-[10px] text-neutral-500 uppercase tracking-widest font-bold mb-0.5">Operational Hours</p>
                     <p className="text-on-surface font-bold">{settings.operational_hours}</p>
                   </div>
                 </div>
@@ -90,7 +90,7 @@ const LocationSection = () => {
                   className="inline-flex items-center gap-2 border border-primary text-primary px-8 py-3 rounded-md font-bold hover:bg-primary hover:text-on-primary transition-all"
                 >
                   <span className="material-symbols-outlined text-base">open_in_new</span>
-                  Petunjuk Arah
+                  Get Directions
                 </a>
               </div>
             </div>

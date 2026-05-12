@@ -29,7 +29,7 @@ interface BookingHistory {
   discount_amount?: string | number;
 }
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = import.meta.env.VITE_API_URL;
 
 const UserProfilePage = () => {
   const navigate = useNavigate();
@@ -93,7 +93,7 @@ const UserProfilePage = () => {
           phone: userData.phone || '',
           password: ''
         });
-        setPhotoPreview(userData.profile_photo ? `http://localhost:8000${userData.profile_photo}` : null);
+        setPhotoPreview(userData.profile_photo ? `${import.meta.env.VITE_BASE_URL}${userData.profile_photo}` : null);
 
         // Fetch History
         const historyRes = await fetch(`${API_BASE}/member/history`, {
@@ -148,7 +148,7 @@ const UserProfilePage = () => {
         setFormData(prev => ({ ...prev, password: '' })); 
         setProfilePhoto(null);
       } else {
-        setAlertConfig({ isOpen: true, message: `Gagal: ${data.message || 'Periksa kembali data Anda'}`, type: 'error' });
+        setAlertConfig({ isOpen: true, message: `Failed: ${data.message || 'Please double-check your data'}`, type: 'error' });
       }
     } catch (error) {
       setAlertConfig({ isOpen: true, message: 'Terjadi kesalahan sistem.', type: 'error' });
@@ -160,7 +160,7 @@ const UserProfilePage = () => {
   const handleCancelBooking = (id: number) => {
     setAlertConfig({
       isOpen: true,
-      message: 'Yakin ingin membatalkan pesanan ini?',
+      message: 'Yeskin ingin memcancelledkan pesanan ini?',
       type: 'info',
       onConfirm: async () => {
         try {
@@ -173,7 +173,7 @@ const UserProfilePage = () => {
           });
           const data = await res.json();
           if (res.ok) {
-            setAlertConfig({ isOpen: true, message: 'Booking berhasil dibatalkan.', type: 'success' });
+            setAlertConfig({ isOpen: true, message: 'Booking berhasil dicancelledkan.', type: 'success' });
             // Refresh history
             const historyRes = await fetch(`${API_BASE}/member/history`, {
               headers: { Authorization: `Bearer ${getToken()}`, Accept: 'application/json' }
@@ -181,7 +181,7 @@ const UserProfilePage = () => {
             const historyData = await historyRes.json();
             setHistory(historyData.data || []);
           } else {
-            setAlertConfig({ isOpen: true, message: data.message || 'Gagal membatalkan.', type: 'error' });
+            setAlertConfig({ isOpen: true, message: data.message || 'Failed memcancelledkan.', type: 'error' });
           }
         } catch (error) {
           setAlertConfig({ isOpen: true, message: 'Terjadi kesalahan.', type: 'error' });
@@ -226,7 +226,7 @@ const UserProfilePage = () => {
           <div className="bg-[#1c1b1b] p-8 rounded-lg text-center lg:text-left">
             <div className="relative w-24 h-24 mx-auto lg:mx-0 mb-6 rounded-lg overflow-hidden border border-outline-variant/30 bg-surface-container-highest">
               {user?.profile_photo ? (
-                <img src={`http://localhost:8000${user.profile_photo}`} alt={user?.name} className="w-full h-full object-cover" />
+                <img src={`${import.meta.env.VITE_BASE_URL}${user.profile_photo}`} alt={user?.name} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
                   <span className="material-symbols-outlined text-5xl text-[#eac249]">person</span>
@@ -235,7 +235,7 @@ const UserProfilePage = () => {
             </div>
             
             <h2 className="font-headline text-2xl font-bold text-[#e5e2e1] tracking-tight">
-              {loading ? 'Memuat...' : user?.name}
+              {loading ? 'Loading...' : user?.name}
             </h2>
             <p className="text-[#c8c6c5] text-sm font-body tracking-wider mt-1">
               {loading ? '...' : `${user?.points ?? 0} Poin`} | Member
@@ -247,7 +247,7 @@ const UserProfilePage = () => {
                 className={`flex items-center gap-4 w-full transition-colors font-headline italic text-lg group ${activeTab === 'history' ? 'text-[#eac249]' : 'text-[#c8c6c5] hover:text-[#eac249]'}`}
               >
                 <span className="material-symbols-outlined" style={{ fontVariationSettings: activeTab === 'history' ? "'FILL' 1" : "'FILL' 0" }}>history</span>
-                <span>Riwayat Booking</span>
+                <span>Booking History</span>
               </button>
               
               <button 
@@ -255,7 +255,7 @@ const UserProfilePage = () => {
                 className={`flex items-center gap-4 w-full transition-colors font-headline italic text-lg group ${activeTab === 'settings' ? 'text-[#eac249]' : 'text-[#c8c6c5] hover:text-[#eac249]'}`}
               >
                 <span className="material-symbols-outlined" style={{ fontVariationSettings: activeTab === 'settings' ? "'FILL' 1" : "'FILL' 0" }}>settings</span>
-                <span>Pengaturan Akun</span>
+                <span>Account Settings</span>
               </button>
               
               <button 
@@ -263,7 +263,7 @@ const UserProfilePage = () => {
                 className="flex items-center gap-4 w-full text-[#ffb4ab]/70 hover:text-[#ffb4ab] transition-colors font-headline italic text-lg mt-12"
               >
                 <span className="material-symbols-outlined">logout</span>
-                <span>Keluar</span>
+                <span>Logout</span>
               </button>
             </div>
           </div>
@@ -279,7 +279,7 @@ const UserProfilePage = () => {
                 <div className="space-y-6 animate-fadeIn">
                   <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                     <div>
-                      <h3 className="font-headline text-3xl font-bold text-[#e5e2e1]">Riwayat Booking</h3>
+                      <h3 className="font-headline text-3xl font-bold text-[#e5e2e1]">Booking History</h3>
                       <p className="text-[#eac249] text-sm font-body uppercase tracking-[0.2em] hidden md:block">Upcoming & Past</p>
                     </div>
                     
@@ -310,19 +310,19 @@ const UserProfilePage = () => {
                     <table className="w-full text-left border-collapse min-w-[600px]">
                       <thead>
                         <tr className="bg-[#2a2a2a]">
-                          <th className="p-6 font-headline italic text-[#d0c5af] font-medium">Layanan</th>
-                          <th className="p-6 font-headline italic text-[#d0c5af] font-medium">Kapster</th>
-                          <th className="p-6 font-headline italic text-[#d0c5af] font-medium">Waktu</th>
-                          <th className="p-6 font-headline italic text-[#d0c5af] font-medium">Harga</th>
+                          <th className="p-6 font-headline italic text-[#d0c5af] font-medium">Service</th>
+                          <th className="p-6 font-headline italic text-[#d0c5af] font-medium">Barber</th>
+                          <th className="p-6 font-headline italic text-[#d0c5af] font-medium">Time</th>
+                          <th className="p-6 font-headline italic text-[#d0c5af] font-medium">Price</th>
                           <th className="p-6 font-headline italic text-[#d0c5af] font-medium text-center">Status</th>
-                          <th className="p-6 font-headline italic text-[#d0c5af] font-medium text-right">Aksi</th>
+                          <th className="p-6 font-headline italic text-[#d0c5af] font-medium text-right">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#4d4635]/10">
                         {currentData.length === 0 ? (
                           <tr>
                             <td colSpan={6} className="p-10 text-center text-[#c8c6c5] italic">
-                              {filterDate ? 'Tidak ada riwayat booking pada tanggal tersebut.' : 'Belum ada riwayat booking.'}
+                              {filterDate ? 'No booking history found for this date.' : 'No booking history available.'}
                             </td>
                           </tr>
                         ) : (
@@ -331,24 +331,23 @@ const UserProfilePage = () => {
                               <td className="p-6">
                                 <p className="font-body font-bold text-[#e5e2e1]">{booking.service_name}</p>
                                 <p className="text-xs text-[#c8c6c5]/60 mt-1 uppercase tracking-widest">{booking.unique_code}</p>
-                                <p className="text-xs text-[#c8c6c5]/60 mt-1 uppercase tracking-widest">{booking.barber_name}</p>
                               </td>
                               <td className="p-6 font-body text-[#c8c6c5]">{booking.barber_name}</td>
                               <td className="p-6 font-body text-[#c8c6c5]">
                                 {booking.booking_date} <br/> {booking.booking_time.slice(0,5)}
                               </td>
                               <td className="p-6 font-body">
-                                <span className="text-[#eac249] font-bold">Rp {Number(booking.total_amount).toLocaleString('id-ID')}</span>
+                                <span className="text-[#eac249] font-bold">Rp {Number(booking.total_amount).toLocaleString('en-US')}</span>
                                 {booking.discount_amount && Number(booking.discount_amount) > 0 && (
                                   <div className="mt-1 text-[10px] text-error font-bold uppercase tracking-widest bg-error/10 border border-error/20 inline-block px-2 py-0.5 rounded-full">
-                                    Diskon {booking.campaign_title ? `(${booking.campaign_title})` : ''} Rp {Number(booking.discount_amount).toLocaleString('id-ID')}
+                                    Diskon {booking.campaign_title ? `(${booking.campaign_title})` : ''} Rp {Number(booking.discount_amount).toLocaleString('en-US')}
                                   </div>
                                 )}
                               </td>
                               <td className="p-6 text-center">
                                 {booking.payment_status === 'expired' ? (
                                   <span className="inline-block px-3 py-1 bg-[#ffb4ab]/10 border border-[#ffb4ab]/20 text-[#ffb4ab] text-[10px] font-bold uppercase tracking-widest rounded-full">
-                                    Booking Gagal
+                                    Booking Failed
                                   </span>
                                 ) : booking.payment_status === 'unpaid' && booking.status !== 'cancelled' ? (
                                   <span className="inline-block px-3 py-1 bg-[#ffb4ab]/10 border border-[#ffb4ab]/20 text-[#ffb4ab] text-[10px] font-bold uppercase tracking-widest rounded-full">
@@ -356,15 +355,15 @@ const UserProfilePage = () => {
                                   </span>
                                 ) : booking.status === 'completed' ? (
                                   <span className="inline-block px-3 py-1 bg-[#353534] text-[#c8c6c5]/60 text-[10px] font-bold uppercase tracking-widest rounded-full">
-                                    Selesai
+                                    Completed
                                   </span>
                                 ) : booking.status === 'cancelled' ? (
                                   <span className="inline-block px-3 py-1 bg-[#ffb4ab]/10 border border-[#ffb4ab]/20 text-[#ffb4ab] text-[10px] font-bold uppercase tracking-widest rounded-full">
-                                    Batal
+                                    Cancel
                                   </span>
                                 ) : (
                                   <span className="inline-block px-3 py-1 bg-[#eac249]/10 border border-[#eac249]/20 text-[#eac249] text-[10px] font-bold uppercase tracking-widest rounded-full">
-                                    {booking.status === 'pending' ? 'Menunggu Kedatangan' : booking.status === 'arrived' ? 'Hadir' : 'Proses'}
+                                    {booking.status === 'pending' ? 'Waiting for Arrival' : booking.status === 'arrived' ? 'Arrived' : 'Proses'}
                                   </span>
                                 )}
                               </td>
@@ -386,7 +385,7 @@ const UserProfilePage = () => {
                                           onClick={() => handleCancelBooking(booking.id)}
                                           className="text-[10px] w-full max-w-[100px] bg-error/10 text-error px-4 py-2 rounded-md font-bold uppercase tracking-widest hover:bg-error/20 transition-all border border-error/20 text-center"
                                         >
-                                          Batalkan
+                                          Cancelkan
                                         </button>
                                       )}
                                     </div>
@@ -398,7 +397,7 @@ const UserProfilePage = () => {
                                       }}
                                       className="text-[10px] border border-[#eac249] text-[#eac249] px-4 py-2 rounded-md font-bold uppercase tracking-widest hover:bg-[#eac249]/10 transition-all"
                                     >
-                                      Lihat Detail
+                                      View Details
                                     </button>
                                   ) : (
                                     <span className="text-secondary/50 text-xs italic">-</span>
@@ -409,7 +408,7 @@ const UserProfilePage = () => {
                                       onClick={() => navigate(`/reschedule/${booking.unique_code}`)}
                                       className="text-[10px] border border-secondary text-secondary px-4 py-2 rounded-md font-bold uppercase tracking-widest hover:bg-secondary/10 hover:text-primary transition-all"
                                     >
-                                      Ubah Jadwal
+                                      Edit Schedule
                                     </button>
                                   )}
                                 </div>
@@ -432,7 +431,7 @@ const UserProfilePage = () => {
                         Sebelumnya
                       </button>
                       <span className="text-[#c8c6c5] text-sm font-body tracking-widest">
-                        Hal {currentPage} dari {totalPages}
+                        Hal {currentPage} of {totalPages}
                       </span>
                       <button 
                         onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
@@ -448,7 +447,7 @@ const UserProfilePage = () => {
 
               {activeTab === 'settings' && (
                 <div className="space-y-6 animate-fadeIn">
-                  <h3 className="font-headline text-3xl font-bold text-[#e5e2e1]">Pengaturan Akun</h3>
+                  <h3 className="font-headline text-3xl font-bold text-[#e5e2e1]">Settings Akun</h3>
                   <div className="bg-[#1c1b1b] p-8 rounded-lg">
                     <form onSubmit={handleUpdateProfile} className="space-y-8">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -476,14 +475,14 @@ const UserProfilePage = () => {
                             />
                             <div className="flex flex-col gap-2">
                               <label htmlFor="profile_photo_input" className="text-sm text-[#3d2f00] py-2 px-4 rounded-full border-0 font-bold bg-[#eac249] hover:bg-[#eac249]/80 transition-all font-body cursor-pointer text-center inline-block">
-                                Pilih Foto
+                                Select Foto
                               </label>
                               {profilePhoto && (
                                 <button type="button" onClick={() => {
                                   setProfilePhoto(null);
-                                  setPhotoPreview(user?.profile_photo ? `http://localhost:8000${user.profile_photo}` : null);
+                                  setPhotoPreview(user?.profile_photo ? `${import.meta.env.VITE_BASE_URL}${user.profile_photo}` : null);
                                 }} className="text-xs text-error font-bold uppercase tracking-widest hover:underline">
-                                  Batal Ganti
+                                  Cancel
                                 </button>
                               )}
                             </div>
@@ -491,7 +490,7 @@ const UserProfilePage = () => {
                         </div>
 
                         <div className="space-y-2">
-                          <label className="text-[#c8c6c5] text-xs uppercase tracking-[0.2em] font-bold">Nama Lengkap</label>
+                          <label className="text-[#c8c6c5] text-xs uppercase tracking-[0.2em] font-bold">Name Lengkap</label>
                           <input 
                             className="w-full bg-[#353534] border-none focus:ring-1 focus:ring-[#eac249] text-[#e5e2e1] font-body p-4 rounded-md outline-none" 
                             type="text" 
@@ -511,7 +510,7 @@ const UserProfilePage = () => {
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[#c8c6c5] text-xs uppercase tracking-[0.2em] font-bold">Nomor Telepon</label>
+                          <label className="text-[#c8c6c5] text-xs uppercase tracking-[0.2em] font-bold">Phone Number</label>
                           <input 
                             className="w-full bg-[#353534] border-none focus:ring-1 focus:ring-[#eac249] text-[#e5e2e1] font-body p-4 rounded-md outline-none" 
                             type="tel" 
@@ -521,11 +520,11 @@ const UserProfilePage = () => {
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[#c8c6c5] text-xs uppercase tracking-[0.2em] font-bold">Ubah Kata Sandi (Opsional)</label>
+                          <label className="text-[#c8c6c5] text-xs uppercase tracking-[0.2em] font-bold">Edit Password (Optional)</label>
                           <div className="relative">
                             <input 
                               className="w-full bg-[#353534] border-none focus:ring-1 focus:ring-[#eac249] text-[#e5e2e1] font-body p-4 pr-12 rounded-md outline-none" 
-                              placeholder="Biarkan kosong jika tidak ingin diubah" 
+                              placeholder="Leave blank if you don't want to change it." 
                               type={showPassword ? 'text' : 'password'}
                               value={formData.password}
                               onChange={(e) => setFormData({...formData, password: e.target.value})}
@@ -549,7 +548,7 @@ const UserProfilePage = () => {
                           className="bg-[#eac249] hover:opacity-90 transition-all text-[#3d2f00] font-body font-bold px-10 py-4 rounded-md uppercase tracking-widest text-sm shadow-[0_4px_20px_rgba(234,194,73,0.2)] disabled:opacity-50 w-full md:w-auto" 
                           type="submit"
                         >
-                          {updating ? 'Menyimpan...' : 'Simpan Perubahan'}
+                          {updating ? 'Saving...' : 'Save Changes'}
                         </button>
                       </div>
                     </form>

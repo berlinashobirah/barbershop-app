@@ -14,10 +14,10 @@ interface Service {
   image: string | null;
 }
 
-const API_BASE = 'http://localhost:8000/api';
-const API_URL = 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_BASE_URL;
 
-const AdminLayananPage = () => {
+const AdminServicePage = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -58,7 +58,7 @@ const AdminLayananPage = () => {
       setServices(res.data.data);
     } catch (error) {
       console.error('Failed to fetch services', error);
-      setAlertConfig({ isOpen: true, message: 'Gagal mengambil data layanan.', type: 'error' });
+      setAlertConfig({ isOpen: true, message: 'Failed to fetch service data.', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -93,7 +93,7 @@ const AdminLayananPage = () => {
       duration_minutes: service.duration_minutes,
       price: service.price,
       points_reward: service.points_reward || 0,
-      is_addon: service.is_addon || false,
+      is_addon: Number(service.is_addon) === 1,
     });
     setImageFile(null);
     setImagePreview(service.image ? `${API_URL}${service.image}` : null);
@@ -106,7 +106,7 @@ const AdminLayananPage = () => {
   const handleDelete = (id: number) => {
     setAlertConfig({
       isOpen: true,
-      message: 'Yakin ingin menghapus layanan ini?',
+      message: 'Are you sure you want to delete this service?',
       type: 'info',
       onConfirm: async () => {
         try {
@@ -115,10 +115,10 @@ const AdminLayananPage = () => {
           });
           fetchServices();
           if (editId === id) handleResetForm();
-          setAlertConfig({ isOpen: true, message: 'Layanan berhasil dihapus.', type: 'success' });
+          setAlertConfig({ isOpen: true, message: 'Service successfully deleted.', type: 'success' });
         } catch (error) {
           console.error(error);
-          setAlertConfig({ isOpen: true, message: 'Gagal menghapus layanan.', type: 'error' });
+          setAlertConfig({ isOpen: true, message: 'Failed to delete service.', type: 'error' });
         }
       }
     });
@@ -157,7 +157,7 @@ const AdminLayananPage = () => {
             'Content-Type': 'multipart/form-data'
           }
         });
-        setAlertConfig({ isOpen: true, message: 'Layanan berhasil diperbarui!', type: 'success' });
+        setAlertConfig({ isOpen: true, message: 'Service data successfully updated!', type: 'success' });
       } else {
         await axios.post(`${API_BASE}/admin/services`, submitData, {
           headers: { 
@@ -165,21 +165,21 @@ const AdminLayananPage = () => {
             'Content-Type': 'multipart/form-data'
           }
         });
-        setAlertConfig({ isOpen: true, message: 'Layanan baru berhasil ditambahkan!', type: 'success' });
+        setAlertConfig({ isOpen: true, message: 'New service successfully added!', type: 'success' });
       }
       
       fetchServices();
       handleResetForm();
     } catch (error: any) {
       console.error(error);
-      setAlertConfig({ isOpen: true, message: error.response?.data?.message || 'Terjadi kesalahan saat menyimpan.', type: 'error' });
+      setAlertConfig({ isOpen: true, message: error.response?.data?.message || 'An error occurred while saving.', type: 'error' });
     } finally {
       setSubmitting(false);
     }
   };
 
   const formatRupiah = (amount: number) => 
-    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amount);
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amount);
 
   const totalPages = Math.ceil(services.length / itemsPerPage);
   const currentServices = services.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -190,8 +190,8 @@ const AdminLayananPage = () => {
       {/* Header Section */}
       <section className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="max-w-2xl">
-          <h2 className="text-4xl font-bold text-on-surface mb-2 tracking-tight font-headline">Kelola Layanan</h2>
-          <p className="text-secondary font-body">Atur katalog layanan eksklusif Anda. Tambahkan, perbarui detail harga, poin reward, atau durasi perawatan untuk menjaga standar presisi atelier.</p>
+          <h2 className="text-4xl font-bold text-on-surface mb-2 tracking-tight font-headline">Manage Services</h2>
+          <p className="text-secondary font-body">Manage your exclusive service catalog. Add, update prices, reward points, or treatment durations to maintain the atelier's precision standards.</p>
         </div>
       </section>
 
@@ -205,7 +205,7 @@ const AdminLayananPage = () => {
              </div>
           ) : currentServices.length === 0 ? (
             <div className="bg-surface-container-low p-10 rounded-xl text-center text-secondary border border-outline-variant/20">
-              Belum ada layanan yang terdaftar di halaman ini.
+              No services available on this page.
             </div>
           ) : (
             <>
@@ -217,7 +217,7 @@ const AdminLayananPage = () => {
                       <span className="material-symbols-outlined text-[10px]">stars</span>
                       {service.points_reward} Pts
                     </span>
-                    {service.is_addon && (
+                    {Number(service.is_addon) === 1 && (
                       <span className="bg-secondary/10 text-secondary text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest ml-2">
                         Add-On
                       </span>
@@ -233,7 +233,7 @@ const AdminLayananPage = () => {
                   </div>
                   
                   <div className="flex gap-4 items-start mb-4">
-                    {service.is_addon ? (
+                    {Number(service.is_addon) === 1 ? (
                       <div className="w-16 h-16 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
                         <span className="material-symbols-outlined text-primary text-2xl font-bold">add_circle</span>
                       </div>
@@ -246,7 +246,7 @@ const AdminLayananPage = () => {
                     )}
                     <div>
                       <h3 className="text-xl font-bold text-on-surface mb-1 font-headline">{service.name}</h3>
-                      <p className="text-xs text-secondary line-clamp-2">{service.description || 'Tidak ada deskripsi.'}</p>
+                      <p className="text-xs text-secondary line-clamp-2">{service.description || 'No description available.'}</p>
                     </div>
                   </div>
 
@@ -264,7 +264,7 @@ const AdminLayananPage = () => {
               {totalPages > 1 && (
                 <div className="mt-6 p-4 bg-surface-container-lowest/50 rounded-xl flex justify-between items-center border border-outline-variant/10">
                   <p className="text-xs text-secondary">
-                    Menampilkan {currentServices.length} dari {services.length} layanan
+                    Showing {currentServices.length} of {services.length} services
                   </p>
                   <div className="flex items-center gap-2">
                     <button
@@ -301,7 +301,7 @@ const AdminLayananPage = () => {
             
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-outline">Nama Layanan</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-outline">Service Name</label>
                 <input 
                   required
                   className="w-full bg-surface-container-highest border-none border-b border-outline-variant text-on-surface rounded-md focus:ring-1 focus:ring-primary px-4 py-3 outline-none transition-all" 
@@ -312,7 +312,7 @@ const AdminLayananPage = () => {
               </div>
               
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-outline">Deskripsi Singkat</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-outline">Brief Description</label>
                 <textarea 
                   className="w-full bg-surface-container-highest border-none border-b border-outline-variant text-on-surface rounded-md focus:ring-1 focus:ring-primary px-4 py-3 outline-none transition-all resize-none h-20" 
                   value={formData.description}
@@ -322,7 +322,7 @@ const AdminLayananPage = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-outline">Durasi (Menit)</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-outline">Duration (Minutes)</label>
                   <input 
                     required min="1"
                     className="w-full bg-surface-container-highest border-none border-b border-outline-variant text-on-surface rounded-md focus:ring-1 focus:ring-primary px-4 py-3 outline-none" 
@@ -332,7 +332,7 @@ const AdminLayananPage = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-outline">Poin Reward</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-outline">Reward Points</label>
                   <input 
                     required min="0"
                     className="w-full bg-surface-container-highest border-none border-b border-outline-variant text-on-surface rounded-md focus:ring-1 focus:ring-primary px-4 py-3 outline-none" 
@@ -345,7 +345,7 @@ const AdminLayananPage = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-outline">Harga (Rp)</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-outline">Price (Rp)</label>
                   <input 
                     required min="0"
                     className="w-full bg-surface-container-highest border-none border-b border-outline-variant text-on-surface rounded-md focus:ring-1 focus:ring-primary px-4 py-3 font-bold text-primary outline-none" 
@@ -369,15 +369,15 @@ const AdminLayananPage = () => {
                         }
                       }}
                     />
-                    <span className="text-sm font-bold text-on-surface">Jadikan Add-On</span>
+                    <span className="text-sm font-bold text-on-surface">Make it an Add-On</span>
                   </label>
-                  <p className="text-[10px] text-secondary mt-1 ml-8">Add-on dipilih setelah layanan utama</p>
+                  <p className="text-[10px] text-secondary mt-1 ml-8">Add-on selected after main service</p>
                 </div>
               </div>
 
               {!formData.is_addon && (
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-outline">Foto Layanan</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-outline">Service Photo</label>
                   <input 
                     type="file" 
                     accept="image/*" 
@@ -399,7 +399,7 @@ const AdminLayananPage = () => {
                     ) : (
                       <>
                         <span className="material-symbols-outlined text-outline text-3xl mb-2 group-hover:text-primary transition-colors">upload_file</span>
-                        <span className="text-xs text-secondary font-medium">Klik untuk Unggah Gambar</span>
+                        <span className="text-xs text-secondary font-medium">Click to Upload Image</span>
                       </>
                     )}
                   </div>
@@ -413,7 +413,7 @@ const AdminLayananPage = () => {
                     className="flex-1 border border-outline-variant text-secondary font-bold py-3 rounded-md text-xs uppercase tracking-widest hover:bg-surface-container-highest transition-all" 
                     type="button"
                   >
-                    Batal
+                    Cancel
                   </button>
                 )}
                 <button 
@@ -421,7 +421,7 @@ const AdminLayananPage = () => {
                   className="flex-1 bg-primary text-on-primary font-bold py-3 rounded-md text-xs uppercase tracking-widest hover:opacity-90 transition-all disabled:opacity-50" 
                   type="submit"
                 >
-                  {submitting ? 'Menyimpan...' : 'Simpan Layanan'}
+                  {submitting ? 'Saving...' : 'Save Service'}
                 </button>
               </div>
             </form>
@@ -439,4 +439,4 @@ const AdminLayananPage = () => {
   );
 };
 
-export default AdminLayananPage;
+export default AdminServicePage;

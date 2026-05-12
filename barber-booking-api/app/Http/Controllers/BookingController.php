@@ -4,12 +4,20 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\Barber;
+use App\Models\Service;
+use App\Models\Campaign;
+use App\Mail\BookingTicketMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Midtrans\Config;
+use Midtrans\Snap;
+use Midtrans\Notification;
+use Midtrans\Transaction;
+use Exception;
 
 class BookingController extends Controller
 {
@@ -115,7 +123,7 @@ class BookingController extends Controller
         if ($existingBookingsCount >= $totalBarbersCount) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Maaf, slot pada jam tersebut sudah penuh. Silakan pilih jam lain.'
+                'message' => 'Sorry, the time slot is full. Please choose another time.'
             ], 400);
         }
 
@@ -129,7 +137,7 @@ class BookingController extends Controller
             if ($isBarberBooked) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Maaf, kapster tersebut sudah di-booking pada jam tersebut. Silakan pilih jam atau kapster lain.'
+                    'message' => 'Sorry, the barber is already booked for that time. Please choose another time or barber.'
                 ], 400);
             }
         }
@@ -153,12 +161,12 @@ class BookingController extends Controller
             $uniqueCode = 'BRB-' . strtoupper(Str::random(5));
         }
 
-        $service = \App\Models\Service::find($request->service_id);
+        $service = Service::find($request->service_id);
         $totalAmount = (int) $service->price;
 
         $addons = [];
         if ($request->addon_ids && is_array($request->addon_ids)) {
-            $addons = \App\Models\Service::whereIn('id', $request->addon_ids)->get();
+            $addons = Service::whereIn('id', $request->addon_ids)->get();
             foreach($addons as $addon) {
                 $totalAmount += (int) $addon->price;
             }
@@ -198,7 +206,7 @@ class BookingController extends Controller
         $booking->load('barber');
         return response()->json([
             'status' => 'success',
-            'message' => 'Booking berhasil!',
+            'message' => 'Booking successful!',
             'data' => [
                 'id' => $booking->id,
                 'unique_code' => $booking->unique_code,
@@ -208,7 +216,7 @@ class BookingController extends Controller
                 'payment_status' => $booking->payment_status,
                 'total_amount' => $booking->total_amount,
                 'service_name' => $service->name,
-                'barber_name' => $booking->barber?->name ?? 'Kapster Mana Saja',
+                'barber_name' => $booking->barber?->name ?? 'Any Barber',
                 'guest_name' => $booking->guest_name,
                 'guest_phone' => $booking->guest_phone,
             ]
@@ -238,7 +246,7 @@ class BookingController extends Controller
         if ($existingBookingsCount >= $totalBarbersCount) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Maaf, slot pada jam tersebut sudah penuh.'
+                'message' => 'Sorry, the time slot is full.'
             ], 400);
         }
 
@@ -252,7 +260,7 @@ class BookingController extends Controller
             if ($isBarberBooked) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Maaf, kapster tersebut sudah di-booking pada jam tersebut.'
+                    'message' => 'Sorry, the barber is already booked for that time.'
                 ], 400);
             }
         }
@@ -276,13 +284,13 @@ class BookingController extends Controller
             $uniqueCode = 'BRB-' . strtoupper(Str::random(5));
         }
 
-        $service = \App\Models\Service::find($request->service_id);
+        $service = Service::find($request->service_id);
         $mainAmount = (int) $service->price;
         $addonsAmount = 0;
 
         $addons = [];
         if ($request->addon_ids && is_array($request->addon_ids)) {
-            $addons = \App\Models\Service::whereIn('id', $request->addon_ids)->get();
+            $addons = Service::whereIn('id', $request->addon_ids)->get();
             foreach($addons as $addon) {
                 $addonsAmount += (int) $addon->price;
             }
@@ -290,55 +298,73 @@ class BookingController extends Controller
 
         $discountAmount = 0;
         $user = $request->user();
+        $subtotal = $mainAmount + $addonsAmount;
 
         // LOGIKA KAMPANYE DISKON
         if ($request->campaign_id) {
-            $campaign = \App\Models\Campaign::find($request->campaign_id);
+            $campaign = Campaign::find($request->campaign_id);
             if ($campaign && $campaign->is_active) {
                 $isValid = true;
 
-                // Cek tanggal
+                // 1. Cek Masa Berlaku
                 $todayDate = now()->timezone('Asia/Jakarta')->toDateString();
-                if ($campaign->start_date && $todayDate < substr($campaign->start_date, 0, 10)) {
+                if ($campaign->start_date && $todayDate < $campaign->start_date->toDateString()) {
                     $isValid = false;
                 }
-                if ($campaign->end_date && $todayDate > substr($campaign->end_date, 0, 10)) {
+                if ($campaign->end_date && $todayDate > $campaign->end_date->toDateString()) {
                     $isValid = false;
                 }
 
-                // Cek specific service
+                if (!$isValid) {
+                    return response()->json(['status' => 'error', 'message' => 'This promo is no longer active or has expired.'], 400);
+                }
+
+                // 2. Cek Specific Service
                 if ($campaign->discount_type === 'specific_service' && $campaign->service_id !== $service->id) {
-                    $isValid = false;
+                    return response()->json(['status' => 'error', 'message' => 'Promo is only applicable for specific services.'], 400);
                 }
 
-                // Cek point
+                // 3. Cek Syarat Minimum Transaksi
+                if ($campaign->min_transaction > 0 && $subtotal < $campaign->min_transaction) {
+                    $minDisplay = number_format($campaign->min_transaction, 0, ',', '.');
+                    return response()->json(['status' => 'error', 'message' => "This promo requires a minimum transaction of Rp {$minDisplay}."], 400);
+                }
+
+                // 4. Cek Khusus New Member (Belum pernah booking sama sekali)
+                if ($campaign->is_new_member_only) {
+                    $existingOrders = Booking::where('user_id', $user->id)->exists();
+                    if ($existingOrders) {
+                        return response()->json(['status' => 'error', 'message' => 'Sorry, this promo is exclusively for your first booking as a new member.'], 400);
+                    }
+                }
+
+                // 5. Cek point (khusus tipe points_based)
                 if ($campaign->discount_type === 'points_based') {
                     if ($user->points < $campaign->required_points) {
-                        return response()->json([
-                            'status' => 'error',
-                            'message' => 'Poin Anda tidak mencukupi untuk menggunakan promo ini.'
-                        ], 400);
-                    }
-                    if ($isValid) {
-                        // Potong point user
-                        $user->points -= $campaign->required_points;
-                        $user->save();
+                        return response()->json(['status' => 'error', 'message' => 'Your points are not sufficient to redeem this promo.'], 400);
                     }
                 }
 
-                if ($isValid) {
-                    $discountAmount = (int) $campaign->discount_amount;
-                    $mainAmount = max(0, $mainAmount - $discountAmount);
+                // HITUNG DISKON BERDASARKAN TIPE UNIT
+                if ($campaign->discount_unit === 'percentage') {
+                    $calculated = ($subtotal * $campaign->discount_amount) / 100;
+                    if ($campaign->max_discount > 0 && $calculated > $campaign->max_discount) {
+                        $calculated = $campaign->max_discount;
+                    }
+                    $discountAmount = (int) $calculated;
                 } else {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'Promo tidak berlaku untuk layanan ini atau sudah kedaluwarsa.'
-                    ], 400);
+                    $discountAmount = (int) $campaign->discount_amount;
+                }
+
+                // POTONG POIN JIKA SAH DAN BERBASIS POIN
+                if ($campaign->discount_type === 'points_based') {
+                    $user->points -= $campaign->required_points;
+                    $user->save();
                 }
             }
         }
 
-        $totalAmount = $mainAmount + $addonsAmount;
+        $totalAmount = max(0, $subtotal - $discountAmount);
 
         $booking = Booking::create([
             'unique_code' => $uniqueCode,
@@ -376,7 +402,7 @@ class BookingController extends Controller
         $booking->load(['barber', 'user', 'campaign']);
         return response()->json([
             'status' => 'success',
-            'message' => 'Booking Member berhasil!',
+            'message' => 'Member booking successful!',
             'data' => [
                 'id' => $booking->id,
                 'unique_code' => $booking->unique_code,
@@ -386,7 +412,7 @@ class BookingController extends Controller
                 'payment_status' => $booking->payment_status,
                 'total_amount' => $booking->total_amount,
                 'service_name' => $service->name,
-                'barber_name' => $booking->barber?->name ?? 'Kapster Mana Saja',
+                'barber_name' => $booking->barber?->name ?? 'Any Barber',
                 'member_name' => $booking->user?->name,
                 'campaign_title' => $booking->campaign?->title,
                 'discount_amount' => $booking->discount_amount,
@@ -411,8 +437,8 @@ class BookingController extends Controller
                     'status' => $booking->status,
                     'payment_status' => $booking->payment_status,
                     'total_amount' => $booking->total_amount,
-                    'service_name' => $booking->services->first()?->name ?? 'Layanan Barbershop',
-                    'barber_name' => $booking->barber?->name ?? 'Kapster Siapa Saja',
+                    'service_name' => $booking->services->first()?->name ?? 'Service Barbershop',
+                    'barber_name' => $booking->barber?->name ?? 'Barber Anyone',
                     'requires_reschedule' => $booking->requires_reschedule,
                     'campaign_title' => $booking->campaign?->title,
                     'discount_amount' => $booking->discount_amount,
@@ -426,19 +452,19 @@ class BookingController extends Controller
     {
         $booking = Booking::findOrFail($id);
         
-        // Hanya bisa batalkan jika status pending dan belum dibayar
+        // Hanya bisa cancelledkan jika status pending dan belum dibayar
         if ($booking->status !== 'pending' && $booking->status !== 'arrived') {
-            return response()->json(['status' => 'error', 'message' => 'Booking tidak dapat dibatalkan.'], 400);
+            return response()->json(['status' => 'error', 'message' => 'Booking cannot be cancelled.'], 400);
         }
 
         if ($booking->payment_status === 'paid') {
-            return response()->json(['status' => 'error', 'message' => 'Booking yang sudah dibayar tidak dapat dibatalkan di sini. Silakan hubungi admin.'], 400);
+            return response()->json(['status' => 'error', 'message' => 'Paid bookings cannot be cancelled here. Please contact the admin.'], 400);
         }
 
         $booking->status = 'cancelled';
         $booking->save();
 
-        return response()->json(['status' => 'success', 'message' => 'Booking berhasil dibatalkan.']);
+        return response()->json(['status' => 'success', 'message' => 'Booking successfully cancelled.']);
     }
 
     public function createPayment(Request $request, $id)
@@ -446,7 +472,7 @@ class BookingController extends Controller
         $booking = Booking::findOrFail($id);
 
         if ($booking->payment_status === 'paid') {
-            return response()->json(['status' => 'error', 'message' => 'Booking ini sudah dibayar.'], 400);
+            return response()->json(['status' => 'error', 'message' => 'This booking has already been paid for.'], 400);
         }
 
         if ((int) $booking->total_amount <= 0) {
@@ -459,10 +485,10 @@ class BookingController extends Controller
             ]);
         }
 
-        \Midtrans\Config::$serverKey    = config('services.midtrans.server_key');
-        \Midtrans\Config::$isProduction = config('services.midtrans.is_production', false);
-        \Midtrans\Config::$isSanitized  = true;
-        \Midtrans\Config::$is3ds        = true;
+        Config::$serverKey    = config('services.midtrans.server_key');
+        Config::$isProduction = config('services.midtrans.is_production', false);
+        Config::$isSanitized  = true;
+        Config::$is3ds        = true;
 
         $orderId = 'ORDER-' . $booking->unique_code . '-' . time();
         $booking->midtrans_order_id = $orderId;
@@ -475,7 +501,7 @@ class BookingController extends Controller
         $serviceName = DB::table('booking_details')
             ->join('services', 'booking_details.service_id', '=', 'services.id')
             ->where('booking_details.booking_id', $booking->id)
-            ->value('services.name') ?? 'Layanan Barbershop';
+            ->value('services.name') ?? 'Service Barbershop';
 
         $params = [
             'transaction_details' => [
@@ -501,14 +527,13 @@ class BookingController extends Controller
                 'bni_va',
                 'bri_va',
                 'permata_va',
-                'gopay',
                 'shopeepay',
                 'indomaret',
                 'alfamart',
             ],
         ];
 
-        $snapToken = \Midtrans\Snap::getSnapToken($params);
+        $snapToken = Snap::getSnapToken($params);
 
         return response()->json([
             'status'     => 'success',
@@ -519,10 +544,10 @@ class BookingController extends Controller
 
     public function handleMidtransNotification(Request $request)
     {
-        \Midtrans\Config::$serverKey    = config('services.midtrans.server_key');
-        \Midtrans\Config::$isProduction = config('services.midtrans.is_production', false);
+        Config::$serverKey    = config('services.midtrans.server_key');
+        Config::$isProduction = config('services.midtrans.is_production', false);
 
-        $notification = new \Midtrans\Notification();
+        $notification = new Notification();
 
         $orderId           = $notification->order_id;
         $transactionStatus = $notification->transaction_status;
@@ -568,16 +593,16 @@ class BookingController extends Controller
     {
         $booking = Booking::findOrFail($id);
 
-        \Midtrans\Config::$serverKey    = config('services.midtrans.server_key');
-        \Midtrans\Config::$isProduction = config('services.midtrans.is_production', false);
-        \Midtrans\Config::$isSanitized  = true;
+        Config::$serverKey    = config('services.midtrans.server_key');
+        Config::$isProduction = config('services.midtrans.is_production', false);
+        Config::$isSanitized  = true;
 
         if (!$booking->midtrans_order_id) {
-            return response()->json(['status' => 'error', 'message' => 'Belum ada transaksi Midtrans untuk booking ini.'], 400);
+            return response()->json(['status' => 'error', 'message' => 'There are no Midtrans transactions yet for this booking.'], 400);
         }
 
         try {
-            $status = \Midtrans\Transaction::status($booking->midtrans_order_id);
+            $status = (object) Transaction::status($booking->midtrans_order_id);
 
             $transactionStatus = $status->transaction_status;
             $fraudStatus       = $status->fraud_status ?? null;
@@ -613,9 +638,9 @@ class BookingController extends Controller
             return response()->json([
                 'status'         => 'success',
                 'payment_status' => $booking->payment_status,
-                'message'        => 'Status pembayaran berhasil diperbarui.'
+                'message'        => 'Payment status successfully updated.'
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
@@ -628,12 +653,12 @@ class BookingController extends Controller
         if (!$recipientEmail) return;
 
         try {
-            \Illuminate\Support\Facades\Mail::to($recipientEmail)->send(
-                new \App\Mail\BookingTicketMail($booking, $filePath)
+            Mail::to($recipientEmail)->send(
+                new BookingTicketMail($booking, $filePath)
             );
-            \Illuminate\Support\Facades\Log::info("Email tiket dikirim ke {$recipientEmail}");
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("Gagal kirim email tiket: " . $e->getMessage());
+            Log::info("Ticket email sent to {$recipientEmail}");
+        } catch (Exception $e) {
+            Log::error("Failed to send ticket email: " . $e->getMessage());
         }
     }
 
@@ -643,10 +668,10 @@ class BookingController extends Controller
         $booking->load(['barber', 'services', 'user']);
 
         $phone = $booking->guest_phone ?? ($booking->user?->phone ?? null);
-        $name = $booking->guest_name ?? ($booking->user?->name ?? 'Kak');
+        $name = $booking->guest_name ?? ($booking->user?->name ?? 'Customer');
 
         if (!$phone) {
-            Log::warning("Tidak ada nomor WhatsApp untuk booking {$booking->id}. WhatsApp tidak dikirim.");
+            Log::warning("No WhatsApp number found for booking {$booking->id}. WhatsApp not sent.");
             return;
         }
 
@@ -654,31 +679,31 @@ class BookingController extends Controller
             $phone = '62' . substr($phone, 1);
         }
 
-        $serviceName = $booking->services->first()?->name ?? 'Layanan Barbershop';
-        $barberName = $booking->barber?->name ?? 'Kapster Mana Saja';
+        $serviceName = $booking->services->first()?->name ?? 'Service Barbershop';
+        $barberName = $booking->barber?->name ?? 'Any Barber';
 
-        $message = "Halo *{$name}*!\n\n";
-        $message .= "Pembayaran kamu untuk booking di *The Modern Artisan* telah berhasil dikonfirmasi. ✅\n\n";
-        $message .= "*Detail Booking:*\n";
-        $message .= "Kode Booking: *{$booking->unique_code}*\n";
-        $message .= "Layanan: *{$serviceName}*\n";
-        $message .= "Kapster: *{$barberName}*\n";
-        $message .= "Tanggal: *" . date('d M Y', strtotime($booking->booking_date)) . "*\n";
-        $message .= "Jam: *" . substr($booking->booking_time, 0, 5) . " WIB*\n\n";
+        $message = "Hello *{$name}*!\n\n";
+        $message .= "Your payment for booking at *The Modern Artisan* has been successfully confirmed. ✅\n\n";
+        $message .= "*Booking Details:*\n";
+        $message .= "Booking Code: *{$booking->unique_code}*\n";
+        $message .= "Service: *{$serviceName}*\n";
+        $message .= "Barber: *{$barberName}*\n";
+        $message .= "Date: *" . date('d M Y', strtotime($booking->booking_date)) . "*\n";
+        $message .= "Time: *" . substr($booking->booking_time, 0, 5) . " WIB*\n\n";
 
         // Logika Pintar: Member vs Guest
         if ($booking->user_id) {
-            $message .= "Silakan cek *Email* kamu untuk melihat e-ticket resmi. Tunjukkan e-ticket tersebut atau kode booking di atas ke kapster saat kedatangan.\n\n";
+            $message .= "Please check your *Email* to view your official e-ticket. Show the e-ticket or the booking code above to our barber upon arrival.\n\n";
         } else {
-            $message .= "E-ticket kamu sudah tercatat aman di sistem kami. Silakan tunjukkan langsung kode booking di atas ke kapster saat kedatangan.\n\n";
+            $message .= "Your e-ticket has been securely recorded in our system. Please show the booking code above directly to our barber upon arrival.\n\n";
         }
 
-        $message .= "Terima kasih dan sampai jumpa di barbershop kami! ✂️";
+        $message .= "Thank you and see you at our barbershop! ✂️";
 
         $fonnteToken = env('FONNTE_TOKEN') ?? config('services.fonnte.token');
 
         if (!$fonnteToken) {
-            Log::warning("Fonnte token tidak dikonfigurasi. WhatsApp tidak dikirim untuk booking {$booking->unique_code}");
+            Log::warning("Fonnte token is not configured. WhatsApp not sent for booking {$booking->unique_code}");
             return;
         }
 
@@ -708,9 +733,9 @@ class BookingController extends Controller
         $responseData = json_decode($response, true);
 
         if ($httpCode == 200 && isset($responseData['status']) && $responseData['status'] == 'success') {
-            Log::info("WhatsApp konfirmasi berhasil dikirim ke {$phone} untuk booking {$booking->unique_code}");
+            Log::info("WhatsApp confirmation successfully sent to {$phone} for booking {$booking->unique_code}");
         } else {
-            Log::error("WhatsApp gagal dikirim ke {$phone} untuk booking {$booking->unique_code}. Response: " . $response);
+            Log::error("WhatsApp failed to send to {$phone} for booking {$booking->unique_code}. Response: " . $response);
         }
     }
 
@@ -722,30 +747,30 @@ class BookingController extends Controller
 
         $booking = Booking::with(['user', 'services', 'barber'])->findOrFail($id);
 
-        // 1. Simpan Gambar Keren Buatan React Kamu!
+        // 1. Save Image Keren Buatan React Kamu!
         $image_parts = explode(";base64,", $request->ticket_image);
         if (count($image_parts) == 2) {
             $image_base64 = base64_decode($image_parts[1]);
             $fileName = 'ticket_' . $booking->unique_code . '_' . time() . '.png';
             $folderPath = storage_path('app/public/tickets');
 
-            if (!\Illuminate\Support\Facades\File::exists($folderPath)) {
-                \Illuminate\Support\Facades\File::makeDirectory($folderPath, 0755, true);
+            if (!File::exists($folderPath)) {
+                File::makeDirectory($folderPath, 0755, true);
             }
 
             $filePath = $folderPath . '/' . $fileName;
-            \Illuminate\Support\Facades\File::put($filePath, $image_base64);
+            File::put($filePath, $image_base64);
 
             // 2. Kirim Email pakai gambar yang BARUSAN AJA disimpan!
             $this->sendBookingConfirmationEmail($booking, $filePath);
         }
 
-        // NOTE: Perintah kirim WA dihapus dari sini! 
+        // NOTE: Perintah kirim WA dihapus of sini! 
         // WA murni hanya dikirim 1x saat status Midtrans berubah jadi 'paid'.
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Tiket estetik berhasil disimpan dan dikirim via Email!',
+            'message' => 'E-Ticket saved and sent via Email successfully!',
         ]);
     }
 
@@ -760,7 +785,7 @@ class BookingController extends Controller
         $booking = Booking::where('unique_code', $uniqueCode)->first();
         
         if (!$booking) {
-            return response()->json(['status' => 'error', 'message' => 'Booking tidak ditemukan.'], 404);
+            return response()->json(['status' => 'error', 'message' => 'Booking not found.'], 404);
         }
 
         $timeFormat = strlen($request->booking_time) == 5 ? $request->booking_time . ':00' : $request->booking_time;
@@ -774,7 +799,7 @@ class BookingController extends Controller
             ->count();
 
         if ($existingBookingsCount >= $totalBarbersCount) {
-            return response()->json(['status' => 'error', 'message' => 'Slot pada jam tersebut sudah penuh.'], 400);
+            return response()->json(['status' => 'error', 'message' => 'The selected time slot is full.'], 400);
         }
 
         if ($request->barber_id) {
@@ -786,7 +811,7 @@ class BookingController extends Controller
                 ->exists();
 
             if ($isBarberBooked) {
-                return response()->json(['status' => 'error', 'message' => 'Kapster tersebut sudah di-booking pada jam tersebut.'], 400);
+                return response()->json(['status' => 'error', 'message' => 'This barber is already booked for the selected time.'], 400);
             }
         }
 
@@ -812,6 +837,6 @@ class BookingController extends Controller
         $booking->reschedule_count += 1;
         $booking->save();
 
-        return response()->json(['status' => 'success', 'message' => 'Jadwal berhasil diubah (Reschedule)!', 'data' => $booking]);
+        return response()->json(['status' => 'success', 'message' => 'Schedule successfully rescheduled!', 'data' => $booking]);
     }
 }

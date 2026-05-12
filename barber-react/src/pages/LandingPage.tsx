@@ -54,9 +54,9 @@ const LandingPage = () => {
     const fetchData = async () => {
       try {
         const [servicesRes, barbersRes, campaignsRes] = await Promise.all([
-          axios.get('http://localhost:8000/api/services'),
-          axios.get('http://localhost:8000/api/barbers'),
-          axios.get('http://localhost:8000/api/campaigns')
+          axios.get(`${import.meta.env.VITE_API_URL}/services`),
+          axios.get(`${import.meta.env.VITE_API_URL}/barbers`),
+          axios.get(`${import.meta.env.VITE_API_URL}/campaigns`)
         ]);
         setServices(servicesRes.data.data);
         setBarbers(barbersRes.data.data);
@@ -72,7 +72,7 @@ const LandingPage = () => {
       const token = localStorage.getItem('auth_token');
       if (token) {
         try {
-          await axios.get('http://localhost:8000/api/user', {
+          await axios.get(`${import.meta.env.VITE_API_URL}/user`, {
             headers: { Authorization: `Bearer ${token}` }
           });
         } catch (error: any) {

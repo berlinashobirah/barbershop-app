@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -130,75 +130,75 @@
         <!-- Content -->
         <div class="content">
             <div class="greeting">
-                Halo <strong>{{ $booking->guest_name ?? $booking->user->name ?? 'Pelanggan' }}</strong>,
+                Hello <strong>{{ $booking->guest_name ?? $booking->user->name ?? 'Customer' }}</strong>,
             </div>
 
-            <p>Terima kasih telah melakukan pembayaran. Booking Anda telah dikonfirmasi! 🎉</p>
+            <p>Thank you for your payment. Your booking has been confirmed! 🎉</p>
 
             <!-- Booking Details -->
             <div class="booking-details">
-                <h3>📋 Detail Booking Anda</h3>
+                <h3>📋 Your Booking Details</h3>
 
                 <div class="detail-row">
-                    <span class="detail-label">Kode Booking:</span>
+                    <span class="detail-label">Booking Code:</span>
                     <span class="detail-value"><strong>{{ $booking->unique_code }}</strong></span>
                 </div>
 
                 <div class="detail-row">
-                    <span class="detail-label">Layanan:</span>
-                    <span class="detail-value">{{ $booking->services->first()->name ?? 'Layanan Barbershop' }}</span>
+                    <span class="detail-label">Service:</span>
+                    <span class="detail-value">{{ $booking->services->first()->name ?? 'Barbershop Service' }}</span>
                 </div>
 
                 <div class="detail-row">
-                    <span class="detail-label">Kapster:</span>
-                    <span class="detail-value">{{ $booking->barber->name ?? 'Kapster Pilihan' }}</span>
+                    <span class="detail-label">Barber:</span>
+                    <span class="detail-value">{{ $booking->barber->name ?? 'Selected Barber' }}</span>
                 </div>
 
                 <div class="detail-row">
-                    <span class="detail-label">Tanggal:</span>
+                    <span class="detail-label">Date:</span>
                     <span class="detail-value">{{ date('d M Y', strtotime($booking->booking_date)) }}</span>
                 </div>
 
                 <div class="detail-row">
-                    <span class="detail-label">Waktu:</span>
+                    <span class="detail-label">Time:</span>
                     <span class="detail-value">{{ substr($booking->booking_time, 0, 5) }} WIB</span>
                 </div>
 
                 <div class="detail-row">
-                    <span class="detail-label">Total Bayar:</span>
+                    <span class="detail-label">Total Amount:</span>
                     <span class="detail-value"><strong>Rp {{ number_format($booking->total_amount, 0, ',', '.') }}</strong></span>
                 </div>
             </div>
 
             <!-- Ticket Attachment Notice -->
             <div class="ticket-attachment">
-                <h4>✓ Tiket Anda Terlampir</h4>
-                <p>Tiket digital (e-ticket) sudah dilampirkan pada email ini. Silakan download dan tunjukkan kepada kami saat tiba.</p>
+                <h4>✓ Your Ticket is Attached</h4>
+                <p>Your digital ticket (e-ticket) has been attached to this email. Please download it and present it to us upon arrival.</p>
             </div>
 
             <!-- Instructions -->
             <div class="instructions">
-                <h4>📍 Petunjuk Penting</h4>
+                <h4>📍 Important Instructions</h4>
                 <ul>
-                    <li><strong>Tunjukkan tiket</strong> ini pada petugas kasir atau kapster saat tiba di lokasi</li>
-                    <li><strong>Datang tepat waktu</strong> - Kami minta Anda datang 5 menit sebelum jam yang dijadwalkan</li>
-                    <li><strong>Informasi kontak:</strong> Jika Anda perlu membatalkan atau mengubah jadwal, segera hubungi kami</li>
+                    <li><strong>Present this ticket</strong> to the cashier or barber upon arrival at the location.</li>
+                    <li><strong>Arrive on time</strong> - We kindly request you to arrive 5 minutes before the scheduled time.</li>
+                    <li><strong>Contact Information:</strong> If you need to cancel or change your schedule, please contact us immediately.</li>
                 </ul>
             </div>
 
-            <p>Jika Anda memiliki pertanyaan, jangan ragu untuk menghubungi kami di:</p>
+            <p>If you have any questions, feel free to reach out to us at:</p>
             <p>
                 📱 <strong>WhatsApp:</strong> 0812-3456-7890<br>
                 📧 <strong>Email:</strong> info@themodernartisan.com
             </p>
 
-            <p style="margin-top: 30px; color: #666;">Kami tunggu kedatangan Anda! Terima kasih telah mempercayai <strong>The Modern Artisan</strong>. 💈</p>
+            <p style="margin-top: 30px; color: #666;">We look forward to seeing you! Thank you for trusting <strong>The Modern Artisan</strong>. 💈</p>
         </div>
 
         <!-- Footer -->
         <div class="footer">
-            <p>© 2026 The Modern Artisan. Semua hak dilindungi.</p>
-            <p>Email ini dikirim secara otomatis. Mohon tidak membalas email ini.</p>
+            <p>© 2026 The Modern Artisan. All rights reserved.</p>
+            <p>This is an automatically generated email. Please do not reply to this message.</p>
         </div>
     </div>
 </body>

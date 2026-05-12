@@ -5,20 +5,21 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class BookingController extends Controller
 {
     private function autoCancelExpiredBookings()
     {
         $nowDate = now()->toDateString();
-        // Batalkan jika sudah lewat 1 jam setelah jam booking
+        // Cancelkan jika sudah lewat 1 jam setelah jam booking
         $oneHourAgoTime = now()->subHour()->toTimeString();
 
         Booking::where('status', 'pending')
             ->where(function ($query) use ($nowDate, $oneHourAgoTime) {
-                // Kondisi 1: Batalkan jika tanggal booking sudah lewat (kemarin, dst)
+                // Kondisi 1: Cancelkan jika tanggal booking sudah lewat (kemarin, dst)
                 $query->where('booking_date', '<', $nowDate)
-                    // Kondisi 2: Batalkan jika tanggal hari ini, TAPI sudah lewat 1 jam lebih dari jam booking
+                    // Kondisi 2: Cancelkan jika tanggal today, TAPI sudah lewat 1 jam lebih of jam booking
                     ->orWhere(function ($q) use ($nowDate, $oneHourAgoTime) {
                         $q->where('booking_date', $nowDate)
                             ->where('booking_time', '<', $oneHourAgoTime);
@@ -31,22 +32,22 @@ class BookingController extends Controller
     {
         // 1. Cek apakah yang akses ini benar-benar Admin
         if ($request->user()->role !== 'admin') {
-            return response()->json(['message' => 'Akses ditolak. Anda bukan Admin.'], 403);
+            return response()->json(['message' => 'Access denied. You are not an Admin.'], 403);
         }
 
         $this->autoCancelExpiredBookings();
 
-        // 2. Ambil tanggal hari ini secara dinamis (format: YYYY-MM-DD)
+        // 2. Ambil tanggal today secara dinamis (format: YYYY-MM-DD)
         $today = now()->toDateString();
 
-        // 3. Tarik data antrean khusus hari ini beserta layanan
+        // 3. Tarik data antrean khusus today beserta layanan
         $todayBookings = Booking::with(['user', 'barber'])
             ->where('booking_date', $today)
             ->orderBy('booking_time', 'asc')
             ->get()
             ->map(function ($booking) {
-                // Ambil nama layanan dari booking_details
-                $serviceName = \Illuminate\Support\Facades\DB::table('booking_details')
+                // Ambil nama layanan of booking_details
+                $serviceName = DB::table('booking_details')
                     ->join('services', 'booking_details.service_id', '=', 'services.id')
                     ->where('booking_details.booking_id', $booking->id)
                     ->value('services.name') ?? '-';
@@ -57,7 +58,7 @@ class BookingController extends Controller
                     'customer_name' => $booking->guest_name ?? ($booking->user?->name ?? 'N/A'),
                     'customer_phone' => $booking->guest_phone ?? ($booking->user?->phone ?? '-'),
                     'customer_type' => $booking->user_id ? 'Member' : 'Guest',
-                    'barber_name'  => $booking->barber?->name ?? 'Belum ditentukan',
+                    'barber_name'  => $booking->barber?->name ?? 'Unassigned',
                     'service_name' => $serviceName,
                     'booking_date' => $booking->booking_date,
                     'booking_time' => $booking->booking_time,
@@ -69,7 +70,7 @@ class BookingController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Data antrean hari ini berhasil diambil',
+            'message' => 'Data antrean today berhasil diambil',
             'data' => $todayBookings
         ]);
     }
@@ -77,7 +78,7 @@ class BookingController extends Controller
     public function index(Request $request)
     {
         if ($request->user()->role !== 'admin') {
-            return response()->json(['message' => 'Akses ditolak. Anda bukan Admin.'], 403);
+            return response()->json(['message' => 'Access denied. You are not an Admin.'], 403);
         }
 
         $this->autoCancelExpiredBookings();
@@ -89,7 +90,7 @@ class BookingController extends Controller
             $query->where('status', $request->status);
         }
 
-        // Filter hanya hari ini jika diminta
+        // Filter hanya today jika diminta
         if ($request->has('today') && $request->today == 'true') {
             $query->where('booking_date', now()->toDateString());
         }
@@ -111,14 +112,32 @@ class BookingController extends Controller
             });
         }
 
-        // Urutkan dari terbaru
+        // Urutkan of terbaru
         $query->orderBy('booking_date', 'desc')->orderBy('booking_time', 'desc');
 
-        // Pagination: 10 per halaman
-        $paginated = $query->paginate(10);
+        // Pagination: 10 per halaman, unless limit=all is requested for printing
+        if ($request->query('limit') === 'all') {
+            $results = $query->get();
+            $paginated = (object) [
+                'total' => $results->count(),
+                'currentPage' => 1,
+                'lastPage' => 1,
+                'items' => $results
+            ];
+            $iterableItems = $results;
+        } else {
+            $paged = $query->paginate(10);
+            $paginated = (object) [
+                'total' => $paged->total(),
+                'currentPage' => $paged->currentPage(),
+                'lastPage' => $paged->lastPage(),
+                'items' => collect($paged->items())
+            ];
+            $iterableItems = $paginated->items;
+        }
 
-        $items = collect($paginated->items())->map(function ($booking) {
-            $serviceName = \Illuminate\Support\Facades\DB::table('booking_details')
+        $items = $iterableItems->map(function ($booking) {
+            $serviceName = DB::table('booking_details')
                 ->join('services', 'booking_details.service_id', '=', 'services.id')
                 ->where('booking_details.booking_id', $booking->id)
                 ->value('services.name') ?? '-';
@@ -129,7 +148,7 @@ class BookingController extends Controller
                 'customer_name' => $booking->guest_name ?? ($booking->user?->name ?? 'N/A'),
                 'customer_phone' => $booking->guest_phone ?? ($booking->user?->phone ?? '-'),
                 'customer_type' => $booking->user_id ? 'Member' : 'Guest',
-                'barber_name'   => $booking->barber?->name ?? 'Belum ditentukan',
+                'barber_name'   => $booking->barber?->name ?? 'Unassigned',
                 'service_name'  => $serviceName,
                 'booking_date'  => $booking->booking_date,
                 'booking_time'  => $booking->booking_time,
@@ -142,9 +161,9 @@ class BookingController extends Controller
         return response()->json([
             'status'       => 'success',
             'data'         => $items,
-            'total'        => $paginated->total(),
-            'current_page' => $paginated->currentPage(),
-            'last_page'    => $paginated->lastPage(),
+            'total'        => $paginated->total,
+            'current_page' => $paginated->currentPage,
+            'last_page'    => $paginated->lastPage,
         ]);
     }
 
@@ -152,7 +171,7 @@ class BookingController extends Controller
     {
         // Cek apakah yang akses ini benar-benar Admin
         if ($request->user()->role !== 'admin') {
-            return response()->json(['message' => 'Akses ditolak. Anda bukan Admin.'], 403);
+            return response()->json(['message' => 'Access denied. You are not an Admin.'], 403);
         }
 
         $request->validate([
