@@ -142,7 +142,13 @@ export default function AdminLayout() {
         </nav>
 
         <div className="p-6 mt-auto border-t border-zinc-800/30">
-          <button className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-neutral-400 hover:bg-neutral-800/40 hover:text-white transition-colors text-sm font-medium">
+          <button 
+            onClick={() => {
+              localStorage.removeItem('auth_token');
+              navigate('/login');
+            }}
+            className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-neutral-400 hover:bg-neutral-800/40 hover:text-white transition-colors text-sm font-medium"
+          >
             <span className="material-symbols-outlined text-sm">logout</span>
             <span>Logout</span>
           </button>

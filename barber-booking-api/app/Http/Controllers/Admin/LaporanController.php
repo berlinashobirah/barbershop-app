@@ -105,16 +105,31 @@ class LaporanController extends Controller
         
         // CASE 2: Default All-Time -> Plot MONTHLY aggregates
         else {
-            $rows = DB::table('bookings')
-                ->selectRaw(
-                    "YEAR(booking_date) AS yr, " .
-                    "MONTH(booking_date) AS mon, " .
-                    "SUM(total_amount) AS revenue, COUNT(*) AS bookings"
-                )
-                ->where('status', 'completed')
-                ->groupByRaw('YEAR(booking_date), MONTH(booking_date)')
-                ->orderByRaw('YEAR(booking_date) ASC, MONTH(booking_date) ASC')
-                ->get();
+            $driver = DB::getDriverName();
+            
+            if ($driver === 'pgsql') {
+                $rows = DB::table('bookings')
+                    ->selectRaw(
+                        "EXTRACT(YEAR FROM booking_date) AS yr, " .
+                        "EXTRACT(MONTH FROM booking_date) AS mon, " .
+                        "SUM(total_amount) AS revenue, COUNT(*) AS bookings"
+                    )
+                    ->where('status', 'completed')
+                    ->groupByRaw("EXTRACT(YEAR FROM booking_date), EXTRACT(MONTH FROM booking_date)")
+                    ->orderByRaw("EXTRACT(YEAR FROM booking_date) ASC, EXTRACT(MONTH FROM booking_date) ASC")
+                    ->get();
+            } else {
+                $rows = DB::table('bookings')
+                    ->selectRaw(
+                        "YEAR(booking_date) AS yr, " .
+                        "MONTH(booking_date) AS mon, " .
+                        "SUM(total_amount) AS revenue, COUNT(*) AS bookings"
+                    )
+                    ->where('status', 'completed')
+                    ->groupByRaw('YEAR(booking_date), MONTH(booking_date)')
+                    ->orderByRaw('YEAR(booking_date) ASC, MONTH(booking_date) ASC')
+                    ->get();
+            }
 
             $monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
             $chart = $rows->map(fn($r) => [
