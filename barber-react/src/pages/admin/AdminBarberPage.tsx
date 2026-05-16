@@ -104,9 +104,10 @@ const AdminBarberPage = () => {
           fetchBarbers();
           if (editId === id) handleResetForm();
           setAlertConfig({ isOpen: true, message: 'Barber successfully deleted.', type: 'success' });
-        } catch (error) {
+        } catch (error: any) {
           console.error(error);
-          setAlertConfig({ isOpen: true, message: 'Failed to delete barber.', type: 'error' });
+          const errorMsg = error.response?.data?.message || 'Failed to delete barber. Connection error.';
+          setAlertConfig({ isOpen: true, message: errorMsg, type: 'error' });
         }
       }
     });

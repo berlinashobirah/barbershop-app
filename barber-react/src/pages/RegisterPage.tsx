@@ -138,12 +138,8 @@ const RegisterPage = () => {
       </main>
 
       <footer className="py-8 px-6 text-center">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 border-t border-outline-variant/10 pt-8">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-center items-center border-t border-outline-variant/10 pt-8">
           <div className="text-secondary/40 text-xs font-label uppercase tracking-widest">© 2024 The Modern Artisan. Established for Excellence.</div>
-          <div className="flex gap-6">
-            <a href="#" className="text-secondary/60 hover:text-primary transition-colors text-xs font-label uppercase tracking-tighter">Terms of Service</a>
-            <a href="#" className="text-secondary/60 hover:text-primary transition-colors text-xs font-label uppercase tracking-tighter">Privacy Policy</a>
-          </div>
         </div>
       </footer>
     </div>

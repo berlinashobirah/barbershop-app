@@ -451,14 +451,6 @@ const AdminPromotionsPage = () => {
         <section className="lg:col-span-8">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl font-headline font-bold text-on-surface">Active Campaigns</h2>
-            <div className="flex gap-2">
-              <button className="p-2 bg-surface-container-high rounded-lg text-on-surface-variant hover:text-primary transition-colors">
-                <span className="material-symbols-outlined">filter_list</span>
-              </button>
-              <button className="p-2 bg-surface-container-high rounded-lg text-on-surface-variant hover:text-primary transition-colors">
-                <span className="material-symbols-outlined">grid_view</span>
-              </button>
-            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -85,6 +85,18 @@ class BarberController extends Controller
     {
         $barber = Barber::findOrFail($id);
         
+        // Ambil semua booking aktif milik barber ini sebelum dihapus
+        $pendingBookings = Booking::where('barber_id', $barber->id)
+            ->whereIn('status', ['pending', 'arrived', 'processing'])
+            ->get();
+        
+        // Kirim notifikasi Reschedule Gratis ke semua customer yang terdampak
+        foreach ($pendingBookings as $booking) {
+            $booking->requires_reschedule = true;
+            $booking->save();
+            $this->sendRescheduleNotification($booking, $barber->name);
+        }
+
         if ($barber->image) {
             $oldPath = str_replace('/storage/', '', $barber->image);
             Storage::disk('public')->delete($oldPath);
@@ -92,7 +104,7 @@ class BarberController extends Controller
 
         $barber->delete();
 
-        return response()->json(['message' => 'Barber berhasil dihapus']);
+        return response()->json(['message' => 'Barber berhasil dihapus dan notifikasi reschedule terkirim.']);
     }
 
     private function sendRescheduleNotification($booking, $barberName)
@@ -104,7 +116,7 @@ class BarberController extends Controller
         if (!$phone) return;
         if (substr($phone, 0, 1) === '0') $phone = '62' . substr($phone, 1);
 
-        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+        $frontendUrl = config('app.frontend_url') ?? 'https://modernartisan-barbershop.my.id';
         $rescheduleLink = rtrim($frontendUrl, '/') . "/reschedule/" . $booking->unique_code;
 
         $message = "Hello *{$name}*!\n\n";
@@ -113,7 +125,7 @@ class BarberController extends Controller
         $message .= "{$rescheduleLink}\n\n";
         $message .= "Thank you for your understanding. 🙏";
 
-        $fonnteToken = env('FONNTE_TOKEN') ?? config('services.fonnte.token');
+        $fonnteToken = config('services.fonnte.token');
         if (!$fonnteToken) return;
 
         $curl = curl_init();

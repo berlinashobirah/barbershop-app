@@ -10,6 +10,8 @@ class DashboardController extends Controller
 {
     public function stats(Request $request)
     {
+        $this->triggerLazyCron(); // Jalankan scheduler pengingat secara pasif di hosting
+
         if ($request->user()->role !== 'admin') {
             return response()->json(['message' => 'Access denied. You are not an Admin.'], 403);
         }

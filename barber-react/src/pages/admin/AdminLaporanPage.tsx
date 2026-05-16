@@ -378,7 +378,8 @@ export default function AdminReportsPage() {
                     {chart.map((day, idx) => {
                       const h = maxRev > 0 ? (day.revenue / maxRev) * 100 : 0
                       const currentMonth = new Date().getMonth() + 1
-                      const isToday = (chartMode === 'daily' && day.day === todayDay) || (chartMode === 'monthly' && day.day === currentMonth)
+                      const todayStr = new Date().toLocaleDateString('en-CA') // Outputs 'YYYY-MM-DD' matching Laravel
+                      const isToday = (chartMode === 'daily' && String(day.day).slice(0, 10) === todayStr) || (chartMode === 'monthly' && Number(day.day) === currentMonth)
                       return (
                         <div key={idx} className="flex-1 group relative cursor-pointer" style={{ height:`${Math.max(h, day.revenue>0?4:0)}%` }}>
                           <div className={`w-full h-full rounded-t transition-colors ${
@@ -396,7 +397,8 @@ export default function AdminReportsPage() {
                   <div className="flex justify-between mt-2 px-1 overflow-hidden">
                     {chart.filter((_,i) => chart.length <= 14 || i % Math.ceil(chart.length/14) === 0 || i === chart.length-1).map((d,i) => {
                       const currentMonth = new Date().getMonth() + 1
-                      const isHighlight = (chartMode === 'daily' && d.day === todayDay) || (chartMode === 'monthly' && d.day === currentMonth)
+                      const todayStr = new Date().toLocaleDateString('en-CA')
+                      const isHighlight = (chartMode === 'daily' && String(d.day).slice(0, 10) === todayStr) || (chartMode === 'monthly' && Number(d.day) === currentMonth)
                       return (
                         <span key={i} className={`text-[9px] font-bold truncate ${isHighlight ? 'text-yellow-400' : 'text-neutral-500'}`}>{d.label}</span>
                       )

@@ -490,54 +490,43 @@ export default function AdminSchedulePage() {
                 </thead>
                 <tbody className="divide-y divide-outline-variant/5">
                   {data.slots.map((time) => {
-                    const isLunch = time === '12:00'
                     return (
-                      <tr key={time} className={isLunch ? 'bg-surface-container-low' : ''}>
+                      <tr key={time}>
                         <td className="p-4 text-xs font-bold text-secondary sticky left-0 bg-surface-container-low/80 backdrop-blur-sm z-10">
                           {time}
                         </td>
-                        {isLunch ? (
-                          <td colSpan={data.barbers.length} className="p-2">
-                            <div className="h-8 border-y border-dashed border-outline-variant/20 flex items-center justify-center">
-                              <span className="text-[10px] uppercase tracking-[0.3em] font-bold text-neutral-600">
-                                Lunch Break
-                              </span>
-                            </div>
-                          </td>
-                        ) : (
-                          data.barbers.map((barber) => {
-                            const slot = barber.slots[time]
-                            return (
-                              <td key={barber.id} className="p-2">
-                                {slot ? (
+                        {data.barbers.map((barber) => {
+                          const slot = barber.slots[time]
+                          return (
+                            <td key={barber.id} className="p-2">
+                              {slot ? (
+                                <div
+                                  className={`h-14 rounded-md p-2 relative ${
+                                    STATUS_SLOT_STYLE[slot.status] ?? STATUS_SLOT_STYLE.pending
+                                  }`}
+                                >
+                                  <p className="text-[10px] font-bold text-on-surface truncate pr-4">
+                                    {slot.customer_name}
+                                  </p>
+                                  <p className="text-[9px] text-secondary truncate">
+                                    {slot.service_name}
+                                  </p>
                                   <div
-                                    className={`h-14 rounded-md p-2 relative ${
-                                      STATUS_SLOT_STYLE[slot.status] ?? STATUS_SLOT_STYLE.pending
+                                    className={`absolute right-2 top-2 w-1.5 h-1.5 rounded-full ${
+                                      STATUS_DOT[slot.status] ?? STATUS_DOT.pending
                                     }`}
-                                  >
-                                    <p className="text-[10px] font-bold text-on-surface truncate pr-4">
-                                      {slot.customer_name}
-                                    </p>
-                                    <p className="text-[9px] text-secondary truncate">
-                                      {slot.service_name}
-                                    </p>
-                                    <div
-                                      className={`absolute right-2 top-2 w-1.5 h-1.5 rounded-full ${
-                                        STATUS_DOT[slot.status] ?? STATUS_DOT.pending
-                                      }`}
-                                    />
-                                  </div>
-                                ) : (
-                                  <div className="h-14 bg-green-500/5 border border-green-500/15 rounded-md flex items-center justify-center cursor-pointer group hover:bg-green-500/10 transition-all">
-                                    <span className="text-[10px] font-bold text-green-600 group-hover:text-green-400 transition-colors">
-                                      AVAILABLE
-                                    </span>
-                                  </div>
-                                )}
-                              </td>
-                            )
-                          })
-                        )}
+                                  />
+                                </div>
+                              ) : (
+                                <div className="h-14 bg-green-500/5 border border-green-500/15 rounded-md flex items-center justify-center cursor-pointer group hover:bg-green-500/10 transition-all">
+                                  <span className="text-[10px] font-bold text-green-600 group-hover:text-green-400 transition-colors">
+                                    AVAILABLE
+                                  </span>
+                                </div>
+                              )}
+                            </td>
+                          )
+                        })}
                       </tr>
                     )
                   })}
@@ -641,32 +630,25 @@ export default function AdminSchedulePage() {
             </thead>
             <tbody>
                {data?.slots.map(time => {
-                  const isLunch = time === '12:00'
                   return (
                      <tr key={time}>
                         <td className="font-bold text-xs">{time}</td>
-                        {isLunch ? (
-                           <td colSpan={data.barbers.length} className="h-lunch text-[9px] tracking-widest uppercase text-center">
-                              Lunch Break
-                           </td>
-                        ) : (
-                           data.barbers.map(b => {
-                              const s = b.slots[time]
-                              return (
-                                 <td key={b.id} className="text-[10px]">
-                                    {s ? (
-                                       <div>
-                                          <div className="font-bold">{s.customer_name}</div>
-                                          <div className="text-gray-500 text-[8px] italic">{s.service_name}</div>
-                                          <div className="text-[8px] uppercase font-medium text-gray-600 mt-0.5 border border-gray-200 inline-block px-1">{s.status}</div>
-                                       </div>
-                                    ) : (
-                                       <span className="text-gray-300">—</span>
-                                    )}
-                                 </td>
-                              )
-                           })
-                        )}
+                        {data.barbers.map(b => {
+                           const s = b.slots[time]
+                           return (
+                              <td key={b.id} className="text-[10px]">
+                                 {s ? (
+                                    <div>
+                                       <div className="font-bold">{s.customer_name}</div>
+                                       <div className="text-gray-500 text-[8px] italic">{s.service_name}</div>
+                                       <div className="text-[8px] uppercase font-medium text-gray-600 mt-0.5 border border-gray-200 inline-block px-1">{s.status}</div>
+                                    </div>
+                                 ) : (
+                                    <span className="text-gray-300">—</span>
+                                 )}
+                              </td>
+                           )
+                        })}
                      </tr>
                   )
                })}
