@@ -116,9 +116,10 @@ const AdminServicePage = () => {
           fetchServices();
           if (editId === id) handleResetForm();
           setAlertConfig({ isOpen: true, message: 'Service successfully deleted.', type: 'success' });
-        } catch (error) {
+        } catch (error: any) {
           console.error(error);
-          setAlertConfig({ isOpen: true, message: 'Failed to delete service.', type: 'error' });
+          const errorMsg = error.response?.data?.message || 'Failed to delete service. Connection error.';
+          setAlertConfig({ isOpen: true, message: errorMsg, type: 'error' });
         }
       }
     });

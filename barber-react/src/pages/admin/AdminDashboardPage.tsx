@@ -425,18 +425,10 @@ export default function AdminDashboardPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="w-full py-12 flex flex-col items-center gap-6 bg-[#131313] border-t border-white/5">
+      <footer className="w-full py-12 flex flex-col items-center bg-[#131313] border-t border-white/5">
         <p className="font-body text-xs uppercase tracking-widest text-secondary text-center">
           © 2024 The Modern Artisan Barbershop. Precision in every cut.
         </p>
-        <div className="flex gap-8">
-          {['About Us', 'Privacy Policy', 'Terms & Conditions', 'Contact Us'].map((link) => (
-            <a key={link} href="#" className="font-body text-xs uppercase tracking-widest text-secondary hover:text-white transition-colors">
-              {link}
-            </a>
-          ))}
-        </div>
       </footer>
       <AlertModal isOpen={alertConfig.isOpen} message={alertConfig.message} type={alertConfig.type} onClose={closeAlert} />
     </>

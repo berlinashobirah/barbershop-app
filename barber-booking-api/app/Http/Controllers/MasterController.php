@@ -11,6 +11,8 @@ class MasterController extends Controller
     // Fungsi untuk mengambil semua data layanan & harga
     public function getServices()
     {
+        $this->triggerLazyCron(); // Jalankan scheduler pengingat secara pasif di hosting
+
         // Mengambil semua data of tabel services
         $services = Service::all();
 

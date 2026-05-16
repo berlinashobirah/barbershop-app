@@ -188,8 +188,8 @@
 
             <p>If you have any questions, feel free to reach out to us at:</p>
             <p>
-                📱 <strong>WhatsApp:</strong> 0812-3456-7890<br>
-                📧 <strong>Email:</strong> info@themodernartisan.com
+                📱 <strong>WhatsApp:</strong> {{ $settings?->phone ?? '085184745134' }}<br>
+                📧 <strong>Email:</strong> {{ $settings?->shop_email ?? 'info@themodernartisan.com' }}
             </p>
 
             <p style="margin-top: 30px; color: #666;">We look forward to seeing you! Thank you for trusting <strong>The Modern Artisan</strong>. 💈</p>
