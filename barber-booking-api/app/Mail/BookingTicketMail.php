@@ -8,6 +8,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Queue\SerializesModels;
+use App\Models\BusinessSetting;
 
 class BookingTicketMail extends Mailable
 {
@@ -15,11 +16,13 @@ class BookingTicketMail extends Mailable
 
     public $booking;
     public $filePath;
+    public $settings;
 
     public function __construct($booking, $filePath)
     {
         $this->booking = $booking;
         $this->filePath = $filePath;
+        $this->settings = BusinessSetting::first();
     }
 
     public function envelope(): Envelope
@@ -38,10 +41,14 @@ class BookingTicketMail extends Mailable
 
     public function attachments(): array
     {
-        return [
-            Attachment::fromPath($this->filePath)
-                ->as('E-Ticket-' . $this->booking->unique_code . '.png')
-                ->withMime('image/png'),
-        ];
+        if ($this->filePath && file_exists($this->filePath)) {
+            return [
+                Attachment::fromPath($this->filePath)
+                    ->as('E-Ticket-' . $this->booking->unique_code . '.png')
+                    ->withMime('image/png'),
+            ];
+        }
+        
+        return []; // Kirim email tanpa lampiran jika gambar tidak sengaja gagal dibuat
     }
 }

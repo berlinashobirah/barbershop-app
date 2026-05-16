@@ -547,10 +547,13 @@ const BookingPage = () => {
 
                   {campaigns.map((camp) => {
                     const isPointsBased = camp.discount_type === 'points_based';
-                    const hasEnoughPoints = user && user.points >= camp.required_points;
-                    const isApplicableService = camp.discount_type !== 'specific_service' || camp.service_id === selectedService;
+                    const userPoints = Number(user?.points || 0);
+                    const requiredPoints = Number(camp.required_points || 0);
+                    const hasEnoughPoints = userPoints >= requiredPoints;
+                    
+                    const isApplicableService = camp.discount_type !== 'specific_service' || Number(camp.service_id) === Number(selectedService);
                     const meetsMinTrans = Number(camp.min_transaction || 0) <= 0 || currentSubtotal >= Number(camp.min_transaction);
-                    const isNewMemberEligible = !camp.is_new_member_only || !(user && user.has_booking);
+                    const isNewMemberEligible = Number(camp.is_new_member_only) !== 1 || !(user && user.has_booking);
                     const isEligible = (!isPointsBased || hasEnoughPoints) && isApplicableService && meetsMinTrans && isNewMemberEligible;
 
                     if (!isEligible) return null;

@@ -15,30 +15,30 @@ export const createMemberBooking = async (bookingData: any) => {
   return response.data;
 };
 
-export const getBookingPayment = async (bookingId: number | string, isGuest = false) => {
+export const getBookingPayment = async (uniqueCode: number | string, isGuest = false) => {
   const url = isGuest 
-    ? `/bookings/${bookingId}/payment/guest` 
-    : `/bookings/${bookingId}/payment`;
+    ? `/bookings/${uniqueCode}/payment/guest` 
+    : `/bookings/${uniqueCode}/payment`;
   const response = await apiClient.post(url);
   return response.data;
 };
 
-export const verifyBookingPayment = async (bookingId: number | string) => {
-  const response = await apiClient.post(`/bookings/${bookingId}/verify-payment`);
+export const verifyBookingPayment = async (uniqueCode: number | string) => {
+  const response = await apiClient.post(`/bookings/${uniqueCode}/verify-payment`);
   return response.data;
 };
 
-export const rescheduleBooking = async (bookingId: number | string, data: any) => {
-  const response = await apiClient.post(`/bookings/${bookingId}/reschedule`, data);
+export const rescheduleBooking = async (uniqueCode: number | string, data: any) => {
+  const response = await apiClient.post(`/bookings/${uniqueCode}/reschedule`, data);
   return response.data;
 };
 
-export const sendBookingWhatsapp = async (bookingId: number | string, phone: string) => {
-  const response = await apiClient.post(`/bookings/${bookingId}/send-whatsapp`, { phone });
+export const sendBookingWhatsapp = async (uniqueCode: number | string, phone: string) => {
+  const response = await apiClient.post(`/bookings/${uniqueCode}/send-whatsapp`, { phone });
   return response.data;
 };
 
-export const sendBookingTicketEmail = async (bookingId: number | string) => {
-  const response = await apiClient.post(`/bookings/${bookingId}/send-ticket-email`);
+export const sendBookingTicketEmail = async (uniqueCode: number | string) => {
+  const response = await apiClient.post(`/bookings/${uniqueCode}/send-ticket-email`);
   return response.data;
 };

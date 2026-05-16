@@ -5,6 +5,7 @@ import html2canvas from 'html2canvas'
 import TicketTemplate from '../components/TicketTemplate'
 import LoadingScreen from '../components/LoadingScreen'
 import AlertModal from '../components/AlertModal'
+import { usePublicSettings } from '../hooks/usePublicSettings'
 
 // Deklarasi global window.snap of Midtrans Snap.js
 declare global {
@@ -22,6 +23,7 @@ declare global {
 
 const SetelahBookingPage = () => {
   const navigate = useNavigate()
+  const settings = usePublicSettings()
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [paymentPending, setPaymentPending] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null)
@@ -58,13 +60,13 @@ const SetelahBookingPage = () => {
       let res;
       if (token) {
         res = await axios.post(
-          `${import.meta.env.VITE_API_URL}/bookings/${booking.id}/payment`,
+          `${import.meta.env.VITE_API_URL}/bookings/${booking.unique_code}/payment`,
           {},
           { headers: { Authorization: `Bearer ${token}` } }
         )
       } else {
-        // Guest: gunakan endpoint berbeda (tanpa auth, hanya butuh booking id)
-        res = await axios.post(`${import.meta.env.VITE_API_URL}/bookings/${booking.id}/payment/guest`, {})
+        // Guest: gunakan endpoint berbeda (tanpa auth, hanya butuh booking unique_code)
+        res = await axios.post(`${import.meta.env.VITE_API_URL}/bookings/${booking.unique_code}/payment/guest`, {})
       }
 
       const snapToken = res.data.snap_token
@@ -84,11 +86,11 @@ const SetelahBookingPage = () => {
               const canvas = await html2canvas(ticketElement, { backgroundColor: '#1a1a1a', scale: 2 });
               const base64Image = canvas.toDataURL('image/png');
               
-              await axios.post(`${import.meta.env.VITE_API_URL}/bookings/${booking.id}/send-whatsapp`, {
+              await axios.post(`${import.meta.env.VITE_API_URL}/bookings/${booking.unique_code}/send-whatsapp`, {
                 ticket_image: base64Image
               });
               try {
-                await axios.post(`${import.meta.env.VITE_API_URL}/bookings/${booking.id}/send-ticket-email`);
+                await axios.post(`${import.meta.env.VITE_API_URL}/bookings/${booking.unique_code}/send-ticket-email`);
               } catch (emailErr) {
                 console.error("Failed to send email", emailErr);
               }
@@ -105,7 +107,7 @@ const SetelahBookingPage = () => {
       // Penting untuk development localhost karena webhook Midtrans tidak bisa reach localhost
       const syncPaymentStatus = async () => {
         try {
-          await axios.post(`${import.meta.env.VITE_API_URL}/bookings/${booking.id}/verify-payment`)
+          await axios.post(`${import.meta.env.VITE_API_URL}/bookings/${booking.unique_code}/verify-payment`)
         } catch (_) {
           // Abaikan error sinkronisasi — webhook production akan handle ini
         }
@@ -143,11 +145,11 @@ const SetelahBookingPage = () => {
                 const canvas = await html2canvas(ticketElement, { backgroundColor: '#1a1a1a', scale: 2 });
                 const base64Image = canvas.toDataURL('image/png');
                 
-                await axios.post(`${import.meta.env.VITE_API_URL}/bookings/${booking.id}/send-whatsapp`, {
+                await axios.post(`${import.meta.env.VITE_API_URL}/bookings/${booking.unique_code}/send-whatsapp`, {
                   ticket_image: base64Image
                 });
                 try {
-                  await axios.post(`${import.meta.env.VITE_API_URL}/bookings/${booking.id}/send-ticket-email`);
+                  await axios.post(`${import.meta.env.VITE_API_URL}/bookings/${booking.unique_code}/send-ticket-email`);
                 } catch (emailErr) {
                   console.error("Failed to send email", emailErr);
                 }
@@ -404,7 +406,7 @@ const SetelahBookingPage = () => {
                     <span className="material-symbols-outlined text-primary mt-1">map</span>
                     <div>
                       <h4 className="text-sm font-bold mb-1">Our Location</h4>
-                      <p className="text-xs text-secondary leading-relaxed">Senopati St. No. 88, Kebayoran Baru, South Jakarta.</p>
+                      <p className="text-xs text-secondary leading-relaxed">{settings?.address || 'Senopati St. No. 88, Kebayoran Baru, South Jakarta.'}</p>
                     </div>
                   </div>
                 </div>
@@ -416,11 +418,6 @@ const SetelahBookingPage = () => {
       </main>
 
       <footer className="bg-[#131313] w-full py-8 flex flex-col items-center gap-4 border-t border-white/5">
-        <div className="flex flex-wrap justify-center gap-6 px-6">
-          {['About Us', 'Privacy Policy', 'Terms & Conditions', 'Contact Us'].map(l => (
-            <a key={l} href="#" className="font-label text-xs uppercase tracking-widest text-secondary hover:text-white transition-colors">{l}</a>
-          ))}
-        </div>
         <div className="text-secondary font-label text-[10px] uppercase tracking-widest opacity-50">
           © 2024 The Modern Artisan Barbershop. Precision in every cut.
         </div>

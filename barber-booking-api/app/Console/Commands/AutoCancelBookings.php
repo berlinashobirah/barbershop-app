@@ -9,6 +9,8 @@ use App\Models\Booking;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ReminderMail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
+use Carbon\Carbon;
 use Exception;
 
 #[Signature('booking:auto-cancel')]
@@ -20,34 +22,49 @@ class AutoCancelBookings extends Command
      */
     public function handle()
     {
-        $now = now();
+        $now = now(); // Sesuai timezone Asia/Jakarta dari config
         
-        // 1. Send Reminder 1 hour before
-        $oneHourLater = $now->copy()->addHour();
-        $reminders = Booking::where('booking_date', $oneHourLater->toDateString())
-            ->where('booking_time', '>=', $oneHourLater->format('H:i:00'))
-            ->where('booking_time', '<=', $oneHourLater->copy()->addMinutes(5)->format('H:i:00'))
-            ->whereIn('status', ['pending'])
+        // Ambil semua booking AKTIF (pending) hari ini
+        $bookingsToday = Booking::where('booking_date', $now->toDateString())
+            ->where('status', 'pending')
             ->get();
-
-        foreach ($reminders as $booking) {
-            $this->sendReminder($booking);
-            $this->info("Reminder sent for booking {$booking->unique_code}");
-        }
-
-        // 2. Auto Cancel if 1 hour late
-        $oneHourAgo = $now->copy()->subHour();
-        
-        $lateBookings = Booking::where('booking_date', $now->toDateString())
-            ->where('booking_time', '<=', $oneHourAgo->format('H:i:00'))
-            ->whereIn('status', ['pending'])
-            ->get();
-
-        foreach ($lateBookings as $booking) {
-            $booking->status = 'cancelled';
-            $booking->save();
-            $this->info("Cancelled late booking {$booking->unique_code}");
-            $this->sendCancellation($booking);
+            
+        foreach ($bookingsToday as $booking) {
+            // Parse waktu booking
+            $bookingTime = Carbon::parse($now->toDateString() . ' ' . $booking->booking_time);
+            
+            // diffInMinutes(..., false) -> mengembalikan selisih ber-tanda (positif jika di masa depan, negatif jika di masa lalu)
+            $diffInMinutes = $now->diffInMinutes($bookingTime, false);
+            
+            // 1. PENGINGAT 1 JAM SEBELUMNYA (Antara 55 - 65 menit ke depan)
+            if ($diffInMinutes >= 55 && $diffInMinutes <= 65) {
+                $cacheKey = "reminder_1h_" . $booking->id;
+                if (!Cache::has($cacheKey)) {
+                    $this->sendReminder($booking);
+                    Cache::put($cacheKey, true, now()->addDays(1));
+                    $this->info("Reminder 1 hour before sent for booking {$booking->unique_code}");
+                }
+            }
+            
+            // 2. LEWAT 30 MENIT -> TAWARAN RESCHEDULE (Antara 30 - 45 menit yang lalu / negatif)
+            if ($diffInMinutes <= -30 && $diffInMinutes >= -45) {
+                $cacheKey = "reschedule_30m_" . $booking->id;
+                if (!Cache::has($cacheKey)) {
+                    $this->sendRescheduleSuggestion($booking);
+                    Cache::put($cacheKey, true, now()->addDays(1));
+                    $this->info("Reschedule suggestion sent for booking {$booking->unique_code}");
+                }
+            }
+            
+            // 3. LEWAT 1 JAM -> AUTO CANCEL & NOTIFIKASI GAGAL (Lebih dari 60 menit yang lalu)
+            if ($diffInMinutes <= -60) {
+                $booking->status = 'cancelled';
+                $booking->save();
+                $this->info("Cancelled late booking {$booking->unique_code}");
+                
+                // Kirim notifikasi pembatalan otomatis
+                $this->sendCancellation($booking);
+            }
         }
     }
 
@@ -70,6 +87,7 @@ class AutoCancelBookings extends Command
 
         // 2. Send WhatsApp
         if (!$phone) return;
+        $phone = preg_replace('/[^0-9]/', '', $phone);
         if (substr($phone, 0, 1) === '0') $phone = '62' . substr($phone, 1);
 
         $message = "Hello *{$name}*!\n\n";
@@ -81,6 +99,28 @@ class AutoCancelBookings extends Command
         $this->sendWa($phone, $message);
     }
 
+    private function sendRescheduleSuggestion($booking)
+    {
+        $booking->load(['user']);
+        $phone = $booking->guest_phone ?? ($booking->user?->phone ?? null);
+        $name = $booking->guest_name ?? ($booking->user?->name ?? 'Customer');
+
+        if (!$phone) return;
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+        if (substr($phone, 0, 1) === '0') $phone = '62' . substr($phone, 1);
+
+        $frontendUrl = config('app.frontend_url') ?? 'https://modernartisan-barbershop.my.id';
+        $rescheduleLink = rtrim($frontendUrl, '/') . "/reschedule/" . $booking->unique_code;
+
+        $message = "Hello *{$name}*!\n\n";
+        $message .= "We noticed that you are *30 minutes late* for your grooming appointment *{$booking->unique_code}* scheduled at *" . substr($booking->booking_time, 0, 5) . " WIB*.\n\n";
+        $message .= "Would you like to reschedule? You can select a new time for FREE by clicking the direct link below:\n\n";
+        $message .= "🔗 {$rescheduleLink}\n\n";
+        $message .= "Please note: if you are more than 1 hour late, your booking will be automatically cancelled. Thank you! 🙏";
+
+        $this->sendWa($phone, $message);
+    }
+
     private function sendCancellation($booking)
     {
         $booking->load(['user']);
@@ -88,6 +128,7 @@ class AutoCancelBookings extends Command
         $name = $booking->guest_name ?? ($booking->user?->name ?? 'Customer');
 
         if (!$phone) return;
+        $phone = preg_replace('/[^0-9]/', '', $phone);
         if (substr($phone, 0, 1) === '0') $phone = '62' . substr($phone, 1);
 
         $message = "Hello *{$name}*!\n\n";
@@ -98,7 +139,7 @@ class AutoCancelBookings extends Command
     }
 
     private function sendWa($phone, $message) {
-        $fonnteToken = env('FONNTE_TOKEN') ?? config('services.fonnte.token');
+        $fonnteToken = config('services.fonnte.token');
         if (!$fonnteToken) return;
 
         $curl = curl_init();

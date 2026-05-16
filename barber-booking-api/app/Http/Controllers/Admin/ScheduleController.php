@@ -107,7 +107,7 @@ class ScheduleController extends Controller
 
         if ($request->status === 'Absent' && $oldStatus !== 'Absent') {
             $pendingBookings = Booking::where('barber_id', $barber->id)
-                ->whereIn('status', ['pending', 'arrived', 'processing'])
+                ->where('status', 'pending')
                 ->get();
             
             foreach ($pendingBookings as $booking) {
@@ -133,7 +133,7 @@ class ScheduleController extends Controller
         if (!$phone) return;
         if (substr($phone, 0, 1) === '0') $phone = '62' . substr($phone, 1);
 
-        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+        $frontendUrl = config('app.frontend_url') ?? 'http://localhost:5173';
         $rescheduleLink = rtrim($frontendUrl, '/') . "/reschedule/" . $booking->unique_code;
 
         $message = "Hello *{$name}*!\n\n";
@@ -142,7 +142,7 @@ class ScheduleController extends Controller
         $message .= "{$rescheduleLink}\n\n";
         $message .= "Thank you for your understanding. 🙏";
 
-        $fonnteToken = env('FONNTE_TOKEN') ?? config('services.fonnte.token');
+        $fonnteToken = config('services.fonnte.token');
         if (!$fonnteToken) return;
 
         $curl = curl_init();

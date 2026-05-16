@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Service;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use App\Models\Booking;
+use App\Models\Campaign;
+use Illuminate\Support\Facades\DB;
 
 class ServiceController extends Controller
 {
@@ -86,6 +89,25 @@ class ServiceController extends Controller
     {
         $service = Service::findOrFail($id);
         
+        // 1. Check if service is linked to any booking in booking_details
+        $hasBookings = DB::table('booking_details')->where('service_id', $id)->exists();
+            
+        if ($hasBookings) {
+            return response()->json([
+                'message' => 'This service cannot be deleted because it has existing customer booking records in the system!',
+                'error_code' => 'SERVICE_IN_USE'
+            ], 400);
+        }
+
+        // 2. Check if service is tied to an active/inactive Campaign (promotion)
+        $hasCampaigns = Campaign::where('service_id', $id)->exists();
+        if ($hasCampaigns) {
+            return response()->json([
+                'message' => 'This service is currently tied to an active promotional campaign. Please delete or detach the promotion first!',
+                'error_code' => 'SERVICE_IN_PROMOTION'
+            ], 400);
+        }
+        
         if ($service->image) {
             $oldPath = str_replace('/storage/', '', $service->image);
             Storage::disk('public')->delete($oldPath);
@@ -93,6 +115,6 @@ class ServiceController extends Controller
 
         $service->delete();
 
-        return response()->json(['message' => 'Service berhasil dihapus']);
+        return response()->json(['message' => 'Service successfully deleted']);
     }
 }

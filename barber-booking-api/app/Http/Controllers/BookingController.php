@@ -48,7 +48,12 @@ class BookingController extends Controller
         $totalBarbers = Barber::where('status', '!=', 'Absent')->count();
         $slotsData = [];
 
+        $isToday = $date === now()->timezone('Asia/Jakarta')->toDateString();
+        $currentTime = now()->timezone('Asia/Jakarta')->format('H:i');
+
         foreach ($allSlots as $time) {
+            $isPastTime = $isToday && ($time <= $currentTime);
+
             $existingBookingsCount = Booking::where('booking_date', $date)
                 ->where('booking_time', $time . ':00')
                 ->whereIn('status', ['pending', 'arrived', 'processing'])
@@ -59,7 +64,7 @@ class BookingController extends Controller
             $slotsData[] = [
                 'time' => $time,
                 'available_barbers' => max(0, $availableCount),
-                'is_full' => $availableCount <= 0
+                'is_full' => ($availableCount <= 0) || $isPastTime
             ];
         }
 
@@ -114,6 +119,17 @@ class BookingController extends Controller
 
         $totalBarbersCount = Barber::count();
         $timeFormat = strlen($request->booking_time) == 5 ? $request->booking_time . ':00' : $request->booking_time;
+
+        // Cek apakah jam booking sudah lewat (jika booking untuk hari ini)
+        $isToday = $request->booking_date === now()->timezone('Asia/Jakarta')->toDateString();
+        $currentTime = now()->timezone('Asia/Jakarta')->format('H:i');
+        $requestedTimeStr = substr($timeFormat, 0, 5);
+        if ($isToday && ($requestedTimeStr <= $currentTime)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Sorry, this time slot has already passed. Please choose a future time.'
+            ], 400);
+        }
 
         $existingBookingsCount = Booking::where('booking_date', $request->booking_date)
             ->where('booking_time', $timeFormat)
@@ -237,6 +253,17 @@ class BookingController extends Controller
 
         $totalBarbersCount = Barber::count();
         $timeFormat = strlen($request->booking_time) == 5 ? $request->booking_time . ':00' : $request->booking_time;
+
+        // Cek apakah jam booking sudah lewat (jika booking untuk hari ini)
+        $isToday = $request->booking_date === now()->timezone('Asia/Jakarta')->toDateString();
+        $currentTime = now()->timezone('Asia/Jakarta')->format('H:i');
+        $requestedTimeStr = substr($timeFormat, 0, 5);
+        if ($isToday && ($requestedTimeStr <= $currentTime)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Sorry, this time slot has already passed. Please choose a future time.'
+            ], 400);
+        }
 
         $existingBookingsCount = Booking::where('booking_date', $request->booking_date)
             ->where('booking_time', $timeFormat)
@@ -467,9 +494,9 @@ class BookingController extends Controller
         return response()->json(['status' => 'success', 'message' => 'Booking successfully cancelled.']);
     }
 
-    public function createPayment(Request $request, $id)
+    public function createPayment(Request $request, $uniqueCode)
     {
-        $booking = Booking::findOrFail($id);
+        $booking = Booking::where('unique_code', $uniqueCode)->firstOrFail();
 
         if ($booking->payment_status === 'paid') {
             return response()->json(['status' => 'error', 'message' => 'This booking has already been paid for.'], 400);
@@ -478,6 +505,10 @@ class BookingController extends Controller
         if ((int) $booking->total_amount <= 0) {
             $booking->payment_status = 'paid';
             $booking->save();
+
+            // Kirim notifikasi & Tiket otomatis untuk Booking FREE
+            $this->completePaidBookingProcess($booking);
+
             return response()->json([
                 'status' => 'success',
                 'snap_token' => 'FREE',
@@ -583,15 +614,15 @@ class BookingController extends Controller
 
         // LOGIKA PINTAR: Cuma kirim kalau statusnya BARU SAJA berubah jadi 'paid'
         if ($oldPaymentStatus !== 'paid' && $booking->payment_status === 'paid') {
-            $this->sendBookingConfirmationWhatsapp($booking);
+            $this->completePaidBookingProcess($booking);
         }
 
         return response()->json(['message' => 'Notification handled successfully']);
     }
 
-    public function verifyAndUpdatePayment(Request $request, $id)
+    public function verifyAndUpdatePayment(Request $request, $uniqueCode)
     {
-        $booking = Booking::findOrFail($id);
+        $booking = Booking::where('unique_code', $uniqueCode)->firstOrFail();
 
         Config::$serverKey    = config('services.midtrans.server_key');
         Config::$isProduction = config('services.midtrans.is_production', false);
@@ -632,7 +663,7 @@ class BookingController extends Controller
 
             // LOGIKA PINTAR: Cuma kirim kalau statusnya BARU SAJA berubah jadi 'paid'
             if ($oldPaymentStatus !== 'paid' && $booking->payment_status === 'paid') {
-                $this->sendBookingConfirmationWhatsapp($booking);
+                $this->completePaidBookingProcess($booking);
             }
 
             return response()->json([
@@ -645,20 +676,160 @@ class BookingController extends Controller
         }
     }
 
+    private function completePaidBookingProcess($booking)
+    {
+        try {
+            $booking->load(['services', 'barber', 'user']);
+            
+            // 1. Kirim WhatsApp text confirmation
+            $this->sendBookingConfirmationWhatsapp($booking);
+
+            // 2. Generate Premium E-Ticket secara otomatis
+            $folderPath = storage_path('app/public/tickets');
+            if (!File::exists($folderPath)) {
+                File::makeDirectory($folderPath, 0755, true);
+            }
+
+            $fileName = 'ticket_' . $booking->unique_code . '_' . time() . '.png';
+            $filePath = $folderPath . '/' . $fileName;
+            
+            // Panggil image generator premium
+            $this->generateTicketImage($booking, $filePath);
+
+            // 3. Kirim Email dengan file lampiran gambar tiket yang digenerate
+            if (file_exists($filePath)) {
+                $this->sendBookingConfirmationEmail($booking, $filePath);
+            } else {
+                Log::warning("Gambar tiket gagal dibuat pada completePaidBookingProcess.");
+            }
+        } catch (Exception $e) {
+            Log::error("Gagal memproses completePaidBookingProcess: " . $e->getMessage());
+        }
+    }
+
     private function sendBookingConfirmationEmail($booking, $filePath)
     {
         $booking->load(['user']);
         $recipientEmail = $booking->guest_email ?? ($booking->user?->email ?? null);
 
-        if (!$recipientEmail) return;
+        if (!$recipientEmail) {
+            Log::warning("Failed to send ticket email: Recipient email is null for booking {$booking->unique_code}");
+            return ['success' => false, 'message' => 'Email penerima kosong (tidak ditemukan email user atau guest_email).'];
+        }
 
         try {
             Mail::to($recipientEmail)->send(
                 new BookingTicketMail($booking, $filePath)
             );
             Log::info("Ticket email sent to {$recipientEmail}");
+            return ['success' => true, 'message' => 'Email sent successfully'];
         } catch (Exception $e) {
             Log::error("Failed to send ticket email: " . $e->getMessage());
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    private function generateTicketImage($booking, $filePath)
+    {
+        $bgPath = storage_path('app/ticket_assets/ticket-bg.png');
+        $fontBold = storage_path('app/ticket_assets/Montserrat-Bold.ttf');
+        $fontRegular = storage_path('app/ticket_assets/Montserrat-Regular.ttf');
+
+        // Cek aset premium, jika tidak ada, fallback ke primitive layout bawaan
+        if (!file_exists($bgPath) || !file_exists($fontBold) || !file_exists($fontRegular)) {
+            $width = 600;
+            $height = 400;
+
+            $image = imagecreatetruecolor($width, $height);
+            $white = imagecolorallocate($image, 255, 255, 255);
+            $purple = imagecolorallocate($image, 102, 126, 234);
+            $black = imagecolorallocate($image, 0, 0, 0);
+
+            imagefilledrectangle($image, 0, 0, $width, $height, $white);
+            imagefilledrectangle($image, 0, 0, $width, 100, $purple);
+            imagestring($image, 5, 150, 40, "E-TICKET", $white);
+            imagestring($image, 3, 180, 70, "The Modern Artisan", $white);
+            imageline($image, 20, 120, $width - 20, 120, $black);
+
+            $y = 150;
+            $lineHeight = 30;
+            $details = [
+                'Kode: ' . $booking->unique_code,
+                'Tanggal: ' . $booking->booking_date,
+                'Jam: ' . substr($booking->booking_time, 0, 5),
+                'Kapster: ' . ($booking->barber?->name ?? 'TBD'),
+                'Layanan: ' . ($booking->services->first()?->name ?? 'Layanan'),
+            ];
+
+            foreach ($details as $detail) {
+                imagestring($image, 2, 40, $y, $detail, $black);
+                $y += $lineHeight;
+            }
+
+            imagepng($image, $filePath);
+            imagedestroy($image);
+            return;
+        }
+
+        try {
+            // PREMIUM GD RENDERING FLOW
+            $image = imagecreatefrompng($bgPath);
+            if (!$image) return;
+
+            // Colors
+            $goldColor = imagecolorallocate($image, 207, 177, 96); // #cfb160
+            $textColor = imagecolorallocate($image, 224, 224, 224); // #e0e0e0
+
+            // Data
+            $uniqueCode = $booking->unique_code;
+            $serviceName = $booking->services->first()?->name ?? 'ARTISAN HAIRCUT';
+            $date = date('l, d F Y', strtotime($booking->booking_date));
+            $time = substr($booking->booking_time, 0, 5) . ' WIB';
+
+            // --- DRAW UNIQUE CODE ---
+            $codeFontSize = 38; // pt
+            $bbox = imagettfbbox($codeFontSize, 0, $fontBold, $uniqueCode);
+            $textWidth = $bbox[2] - $bbox[0];
+            $textHeight = $bbox[1] - $bbox[7];
+
+            $centerX = (900 - $textWidth) / 2;
+            $centerY = 236; // 47% of 502px height canvas
+            $baselineY = $centerY + ($textHeight / 2);
+
+            // Draw Shadow
+            $shadowColor = imagecolorallocatealpha($image, 0, 0, 0, 70);
+            imagettftext($image, $codeFontSize, 0, $centerX + 2, $baselineY + 2, $shadowColor, $fontBold, $uniqueCode);
+            // Draw Main Code
+            imagettftext($image, $codeFontSize, 0, $centerX, $baselineY, $goldColor, $fontBold, $uniqueCode);
+
+            // --- DRAW DETAILS TABLE ---
+            $detailsFontSize = 10.5; // pt
+            $startX = 252; // 28% of 900px
+            $valueX = $startX + 110; // Memberi jarak kolom 110px agar rapih
+            $startY = 291; // 58% of 502px height canvas
+            $lineSpacing = 22; // Spasi baris lebih lega
+
+            // Service Row
+            imagettftext($image, $detailsFontSize, 0, $startX, $startY, $textColor, $fontRegular, "SERVICE:");
+            imagettftext($image, $detailsFontSize, 0, $valueX, $startY, $textColor, $fontBold, strtoupper($serviceName));
+
+            // Date Row
+            $row2Y = $startY + $lineSpacing;
+            imagettftext($image, $detailsFontSize, 0, $startX, $row2Y, $textColor, $fontRegular, "DATE:");
+            imagettftext($image, $detailsFontSize, 0, $valueX, $row2Y, $textColor, $fontBold, $date);
+
+            // Time Row
+            $row3Y = $row2Y + $lineSpacing;
+            imagettftext($image, $detailsFontSize, 0, $startX, $row3Y, $textColor, $fontRegular, "TIME:");
+            imagettftext($image, $detailsFontSize, 0, $valueX, $row3Y, $textColor, $fontBold, $time);
+
+            imagepng($image, $filePath);
+            
+            if (is_resource($image) || is_object($image)) {
+                try { imagedestroy($image); } catch (\Throwable $e) {}
+            }
+        } catch (Exception $e) {
+            Log::error("Gagal generate premium ticket: " . $e->getMessage());
         }
     }
 
@@ -675,6 +846,8 @@ class BookingController extends Controller
             return;
         }
 
+        // Format Nomor Telepon: Bersihkan dari karakter non-angka (seperti +, spasi, strip)
+        $phone = preg_replace('/[^0-9]/', '', $phone);
         if (substr($phone, 0, 1) === '0') {
             $phone = '62' . substr($phone, 1);
         }
@@ -700,7 +873,7 @@ class BookingController extends Controller
 
         $message .= "Thank you and see you at our barbershop! ✂️";
 
-        $fonnteToken = env('FONNTE_TOKEN') ?? config('services.fonnte.token');
+        $fonnteToken = config('services.fonnte.token');
 
         if (!$fonnteToken) {
             Log::warning("Fonnte token is not configured. WhatsApp not sent for booking {$booking->unique_code}");
@@ -739,38 +912,124 @@ class BookingController extends Controller
         }
     }
 
-    public function sendWhatsapp(Request $request, $id)
+    public function sendWhatsapp(Request $request, $uniqueCode)
     {
         $request->validate([
             'ticket_image' => 'required|string',
         ]);
 
-        $booking = Booking::with(['user', 'services', 'barber'])->findOrFail($id);
+        $booking = Booking::with(['user', 'services', 'barber'])->where('unique_code', $uniqueCode)->firstOrFail();
+        $filePath = null;
+        $folderPath = storage_path('app/public/tickets');
 
-        // 1. Save Image Keren Buatan React Kamu!
-        $image_parts = explode(";base64,", $request->ticket_image);
-        if (count($image_parts) == 2) {
-            $image_base64 = base64_decode($image_parts[1]);
-            $fileName = 'ticket_' . $booking->unique_code . '_' . time() . '.png';
-            $folderPath = storage_path('app/public/tickets');
-
-            if (!File::exists($folderPath)) {
-                File::makeDirectory($folderPath, 0755, true);
-            }
-
-            $filePath = $folderPath . '/' . $fileName;
-            File::put($filePath, $image_base64);
-
-            // 2. Kirim Email pakai gambar yang BARUSAN AJA disimpan!
-            $this->sendBookingConfirmationEmail($booking, $filePath);
+        // Pastikan folder ada
+        if (!File::exists($folderPath)) {
+            @File::makeDirectory($folderPath, 0755, true);
         }
 
-        // NOTE: Perintah kirim WA dihapus of sini! 
-        // WA murni hanya dikirim 1x saat status Midtrans berubah jadi 'paid'.
+        try {
+            // Cek apakah file tiket sudah pernah digenerate secara otomatis oleh backend sebelumnya
+            $exists = false;
+            if (File::exists($folderPath)) {
+                $files = glob($folderPath . '/ticket_' . $booking->unique_code . '_*.png');
+                if (!empty($files)) {
+                    $exists = true;
+                }
+            }
+
+            if ($exists) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Ticket already generated automatically (skipped duplicate).',
+                ]);
+            }
+
+            // 1. Mencoba Save Image Keren Buatan React (Diproteksi Try-Catch agar tidak merusak proses email)
+            $image_parts = explode(";base64,", $request->ticket_image);
+            if (count($image_parts) == 2) {
+                $image_base64 = base64_decode($image_parts[1]);
+                $fileName = 'ticket_' . $booking->unique_code . '_' . time() . '.png';
+                
+                $tempPath = $folderPath . '/' . $fileName;
+                if (@File::put($tempPath, $image_base64)) {
+                    $filePath = $tempPath;
+                }
+            }
+        } catch (Exception $e) {
+            Log::error("Gagal menyimpan file tiket PNG ke server: " . $e->getMessage());
+        }
+
+        // FALLBACK: Jika gagal save dari React, generate otomatis server-side agar email tidak kosong
+        if (!$filePath || !file_exists($filePath)) {
+            try {
+                $fileName = 'ticket_' . $booking->unique_code . '_' . time() . '.png';
+                $filePath = $folderPath . '/' . $fileName;
+                $this->generateTicketImage($booking, $filePath);
+            } catch (Exception $e) {
+                Log::error("Gagal generate tiket server-side fallback: " . $e->getMessage());
+                $filePath = null;
+            }
+        }
+
+        // 2. Kirim Email (Proses dilanjutkan dengan aman, gambar = terjamin terisi)
+        $this->sendBookingConfirmationEmail($booking, $filePath);
 
         return response()->json([
             'status' => 'success',
-            'message' => 'E-Ticket saved and sent via Email successfully!',
+            'message' => 'Process complete. Email has been triggered safely!',
+        ]);
+    }
+
+    public function sendTicketEmail(Request $request, $uniqueCode)
+    {
+        $booking = Booking::with(['user', 'services', 'barber'])->where('unique_code', $uniqueCode)->firstOrFail();
+        
+        $folderPath = storage_path('app/public/tickets');
+        
+        // Pastikan folder ada
+        if (!File::exists($folderPath)) {
+            @File::makeDirectory($folderPath, 0755, true);
+        }
+
+        $latestFile = null;
+        $forceRegenerate = $request->isMethod('get'); // Jika diakses via browser URL, paksa buat tiket baru agar pengetesan valid
+        
+        try {
+            if (!$forceRegenerate) {
+                $files = glob($folderPath . '/ticket_' . $booking->unique_code . '_*.png');
+                if (!empty($files)) {
+                    $latestFile = end($files);
+                }
+            }
+        } catch (Exception $e) {
+            // Hiraukan jika glob gagal
+        }
+
+        // GENERATE TIKET BARU: Jika file belum ada ATAU dipaksa regenerasi (untuk pengetesan)
+        if ($forceRegenerate || !$latestFile || !file_exists($latestFile)) {
+            try {
+                $fileName = 'ticket_' . $booking->unique_code . '_TEST_' . time() . '.png';
+                $latestFile = $folderPath . '/' . $fileName;
+                $this->generateTicketImage($booking, $latestFile);
+            } catch (Exception $e) {
+                Log::error("Gagal generate tiket server-side di sendTicketEmail: " . $e->getMessage());
+                $latestFile = null;
+            }
+        }
+
+        // Kirim Email Konfirmasi Tiket
+        $result = $this->sendBookingConfirmationEmail($booking, $latestFile);
+
+        if (!$result['success']) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal mengirim e-ticket: ' . $result['message']
+            ], 500);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'E-Ticket email successfully sent!'
         ]);
     }
 
